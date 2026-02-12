@@ -18,6 +18,8 @@ interface MainDashboardProps {
   representativeVariant: RepresentativeVariant;
   onRepresentativeVariantChange: (variant: RepresentativeVariant) => void;
   onEditMoney: () => void;
+  userDisplayName?: string;
+  companyName?: string;
 }
 
 export function MainDashboard({
@@ -26,12 +28,18 @@ export function MainDashboard({
   representativeVariant,
   onRepresentativeVariantChange,
   onEditMoney,
+  userDisplayName,
+  companyName,
 }: MainDashboardProps) {
   // 재무 판단: 월 지출·런웨이 기준은 lib/finance.ts 참고
   const monthlyBurn = computeMonthlyBurn(data.employees, data.marketingCost, data.officeCost);
   const runwayStatus = getRunwayStatus(data.runway);
   const hpPercentage = Math.min((data.runway / 12) * 100, 100); // 12개월 = 100%
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const titleName = userDisplayName?.trim() || '대표';
+  const subtitle = companyName?.trim()
+    ? `${companyName.trim()} 재무 전장 시뮬레이터`
+    : '삼국지 전장 감성 재무 시뮬레이터';
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 md:px-5">
@@ -45,8 +53,8 @@ export function MainDashboard({
           <div className="flex items-center gap-4">
             <span className="text-4xl drop-shadow-[0_2px_0_rgba(0,0,0,0.65)]">🏯</span>
             <div>
-              <h1 className="sg-heading">대표의 성 방어전</h1>
-              <p className="sg-subtitle mt-1">삼국지 전장 감성 재무 시뮬레이터</p>
+              <h1 className="sg-heading">{titleName}님의 성 방어전</h1>
+              <p className="sg-subtitle mt-1">{subtitle}</p>
             </div>
           </div>
           <motion.button

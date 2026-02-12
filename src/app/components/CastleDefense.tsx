@@ -59,6 +59,13 @@ const DEFAULT_SCENARIO_COPY: ScenarioCopyMap = {
   },
 };
 
+interface CastleDefenseProps {
+  userDisplayName?: string;
+  companyName?: string;
+  initialRepresentativeVariant?: RepresentativeVariant;
+  onRepresentativeVariantPersist?: (variant: RepresentativeVariant) => Promise<void> | void;
+}
+
 function getStoredVariant(): RepresentativeVariant | null {
   if (typeof window === 'undefined') return null;
   const v = localStorage.getItem(STORAGE_VARIANT);
@@ -71,7 +78,12 @@ function getHasChosen(): boolean {
   return localStorage.getItem(STORAGE_CHOSEN) === 'true';
 }
 
-export function CastleDefense() {
+export function CastleDefense({
+  userDisplayName,
+  companyName,
+  initialRepresentativeVariant,
+  onRepresentativeVariantPersist,
+}: CastleDefenseProps) {
   const [gameMode, setGameMode] = useState<GameMode>('dashboard');
   const [selectedScenario, setSelectedScenario] = useState<ScenarioId>('maintain');
   const [scenarioCopy, setScenarioCopy] = useState<ScenarioCopyMap>(DEFAULT_SCENARIO_COPY);
@@ -79,16 +91,25 @@ export function CastleDefense() {
   const [scenarioDialogOpen, setScenarioDialogOpen] = useState(false);
   const [editingScenarioId, setEditingScenarioId] = useState<EditableScenarioId | null>(null);
 
-  const [representativeVariant, setRepresentativeVariant] = useState<RepresentativeVariant>(() => getStoredVariant() ?? 'strategist');
-  const [showCharacterChoice, setShowCharacterChoice] = useState<boolean>(() => !getHasChosen());
+  const [representativeVariant, setRepresentativeVariant] = useState<RepresentativeVariant>(
+    () => initialRepresentativeVariant ?? getStoredVariant() ?? 'strategist'
+  );
+  const [showCharacterChoice, setShowCharacterChoice] = useState<boolean>(
+    () => !initialRepresentativeVariant && !getHasChosen()
+  );
 
-  const handleCharacterSelect = (variant: RepresentativeVariant) => {
+  const applyRepresentativeVariant = (variant: RepresentativeVariant) => {
     setRepresentativeVariant(variant);
-    setShowCharacterChoice(false);
     try {
       localStorage.setItem(STORAGE_VARIANT, variant);
       localStorage.setItem(STORAGE_CHOSEN, 'true');
     } catch (_) {}
+    void onRepresentativeVariantPersist?.(variant);
+  };
+
+  const handleCharacterSelect = (variant: RepresentativeVariant) => {
+    applyRepresentativeVariant(variant);
+    setShowCharacterChoice(false);
   };
 
   useEffect(() => {
@@ -96,6 +117,16 @@ export function CastleDefense() {
       localStorage.setItem(STORAGE_VARIANT, representativeVariant);
     }
   }, [representativeVariant, showCharacterChoice]);
+
+  useEffect(() => {
+    if (!initialRepresentativeVariant) return;
+    setRepresentativeVariant(initialRepresentativeVariant);
+    setShowCharacterChoice(false);
+    try {
+      localStorage.setItem(STORAGE_VARIANT, initialRepresentativeVariant);
+      localStorage.setItem(STORAGE_CHOSEN, 'true');
+    } catch (_) {}
+  }, [initialRepresentativeVariant]);
   
   const [financialData, setFinancialData] = useState<FinancialData>({
     cash: 150000,
@@ -175,8 +206,10 @@ export function CastleDefense() {
           data={financialData}
           onStartScenario={() => setGameMode('scenario')}
           representativeVariant={representativeVariant}
-          onRepresentativeVariantChange={setRepresentativeVariant}
+          onRepresentativeVariantChange={applyRepresentativeVariant}
           onEditMoney={() => setMoneyDialogOpen(true)}
+          userDisplayName={userDisplayName}
+          companyName={companyName}
         />
       )}
       
