@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { PixelButton } from './pixel/PixelButton';
 import { StrategySettings, FinancialData } from './CastleDefense';
 import { Slider } from './ui/slider';
+import { formatKoreanMoney } from '../lib/finance';
 
 interface StrategyPanelProps {
   settings: StrategySettings;
@@ -99,21 +100,21 @@ export function StrategyPanel({
               <div className="sg-card-dark flex items-center justify-between p-3">
                 <span className="text-sm text-slate-200">월 매출</span>
                 <div className="text-right">
-                  <div className="text-lg font-bold text-green-400">${(projection.revenue / 1000).toFixed(1)}K</div>
-                  <div className="text-xs text-slate-500">기존: ${(data.monthlyRevenue / 1000).toFixed(1)}K</div>
+                  <div className="text-lg font-bold text-green-400">{formatKoreanMoney(projection.revenue)}</div>
+                  <div className="text-xs text-slate-500">기존: {formatKoreanMoney(data.monthlyRevenue)}</div>
                 </div>
               </div>
               <div className="sg-card-dark flex items-center justify-between p-3">
                 <span className="text-sm text-slate-200">월 지출</span>
                 <div className="text-right">
-                  <div className="text-lg font-bold text-red-400">${(projection.burn / 1000).toFixed(1)}K</div>
-                  <div className="text-xs text-slate-500">기존: ${(data.monthlyBurn / 1000).toFixed(1)}K</div>
+                  <div className="text-lg font-bold text-red-400">{formatKoreanMoney(projection.burn)}</div>
+                  <div className="text-xs text-slate-500">기존: {formatKoreanMoney(data.monthlyBurn)}</div>
                 </div>
               </div>
               <div className="sg-card-dark flex items-center justify-between p-3">
                 <span className="text-sm text-slate-200">월 순이익</span>
                 <div className={`text-lg font-bold ${projection.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {projection.profit >= 0 ? '+' : ''}${(projection.profit / 1000).toFixed(1)}K
+                  {formatKoreanMoney(projection.profit, { signed: true })}
                 </div>
               </div>
               <div className="sg-card-dark flex items-center justify-between p-3">
@@ -143,7 +144,7 @@ export function StrategyPanel({
                     animate={{ height: `${Math.min(height, 100)}%` }}
                     transition={{ delay: i * 0.02 }}
                     className={`flex-1 rounded-t-sm ${profit >= 0 ? 'bg-emerald-500' : 'bg-red-500'} border border-amber-900/20`}
-                    title={`${i + 1}개월: $${(profit / 1000).toFixed(1)}K`}
+                    title={`${i + 1}개월: ${formatKoreanMoney(profit, { signed: true })}`}
                   />
                 );
               })}

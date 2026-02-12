@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { FinancialData } from './CastleDefense';
-import { computeMonthlyBurn, getRunwayStatus } from '../lib/finance';
+import { computeMonthlyBurn, formatKoreanMoney, getRunwayStatus } from '../lib/finance';
 import { PixelCastle } from './pixel/PixelCastle';
 import { RepresentativeCharacter } from './character/RepresentativeCharacter';
 import { PixelMonster } from './pixel/PixelMonster';
@@ -17,6 +17,7 @@ interface MainDashboardProps {
   onStartScenario: () => void;
   representativeVariant: RepresentativeVariant;
   onRepresentativeVariantChange: (variant: RepresentativeVariant) => void;
+  onEditMoney: () => void;
 }
 
 export function MainDashboard({
@@ -24,6 +25,7 @@ export function MainDashboard({
   onStartScenario,
   representativeVariant,
   onRepresentativeVariantChange,
+  onEditMoney,
 }: MainDashboardProps) {
   // 재무 판단: 월 지출·런웨이 기준은 lib/finance.ts 참고
   const monthlyBurn = computeMonthlyBurn(data.employees, data.marketingCost, data.officeCost);
@@ -47,10 +49,17 @@ export function MainDashboard({
               <p className="sg-subtitle mt-1">삼국지 전장 감성 재무 시뮬레이터</p>
             </div>
           </div>
-          <div className="sg-card-dark px-5 py-3 text-center">
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onEditMoney}
+            className="sg-card-dark cursor-pointer px-5 py-3 text-center"
+          >
             <div className="sg-label text-amber-200">금고</div>
-            <div className="mt-1 text-2xl font-black text-amber-200">${(data.cash / 1000).toFixed(0)}K</div>
-          </div>
+            <div className="mt-1 text-2xl font-black text-amber-200">{formatKoreanMoney(data.cash)}</div>
+            <div className="mt-1 text-[10px] font-bold text-slate-300">클릭하여 수정</div>
+          </motion.button>
         </div>
       </motion.div>
 
@@ -194,8 +203,8 @@ export function MainDashboard({
             const maxProfit = 15000;
             const height = Math.abs(profit) / maxProfit * 100;
             return (
-              <div key={i} className="flex flex-col items-center gap-1">
-                <div className="text-[10px] font-bold text-amber-900/70">${(profit / 1000).toFixed(0)}K</div>
+                <div key={i} className="flex flex-col items-center gap-1">
+                <div className="text-[10px] font-bold text-amber-900/70">{formatKoreanMoney(profit, { signed: true })}</div>
                 <div
                   className={`w-8 rounded-sm ${profit >= 0 ? 'bg-emerald-500' : 'bg-red-500'} border border-amber-900/30`}
                   style={{ height: `${Math.max(height, 10)}%` }}
@@ -220,7 +229,7 @@ export function MainDashboard({
         </div>
 
         <div className="mt-4 text-sm text-amber-100/85">
-          💡 현재 상태: 월 소득 ${(data.monthlyRevenue / 1000).toFixed(0)}K | 월 지출 ${(data.monthlyBurn / 1000).toFixed(0)}K | 순이익 ${((data.monthlyRevenue - data.monthlyBurn) / 1000).toFixed(0)}K
+          💡 현재 상태: 월 소득 {formatKoreanMoney(data.monthlyRevenue)} | 월 지출 {formatKoreanMoney(data.monthlyBurn)} | 순이익 {formatKoreanMoney(data.monthlyRevenue - data.monthlyBurn, { signed: true })}
         </div>
       </motion.div>
     </div>

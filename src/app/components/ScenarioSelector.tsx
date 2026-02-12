@@ -1,45 +1,51 @@
 import { motion } from 'motion/react';
 import { PixelButton } from './pixel/PixelButton';
+import type { ScenarioCopyMap, ScenarioId } from './CastleDefense';
+import type { EditableScenarioId } from './ScenarioEditDialog';
 
 interface ScenarioSelectorProps {
-  selectedScenario: 'defense' | 'maintain' | 'attack';
-  onSelectScenario: (scenario: 'defense' | 'maintain' | 'attack') => void;
+  selectedScenario: ScenarioId;
+  onSelectScenario: (scenario: ScenarioId) => void;
+  scenarioCopy: ScenarioCopyMap;
+  onEditScenario: (scenario: EditableScenarioId) => void;
   onNext: () => void;
+  onSimulate: () => void;
   onBack: () => void;
 }
 
 export function ScenarioSelector({
   selectedScenario,
   onSelectScenario,
+  scenarioCopy,
+  onEditScenario,
   onNext,
+  onSimulate,
   onBack
 }: ScenarioSelectorProps) {
   const scenarios = [
     {
       id: 'defense' as const,
       icon: '🛡️',
-      title: '방어 모드',
-      description: '비용 -30% 절감',
-      effect: '런웨이 +5개월',
-      detail: '도적군 속도 느려짐',
+      ...scenarioCopy.defense,
     },
     {
       id: 'maintain' as const,
       icon: '⚔️',
-      title: '현상 유지',
-      description: '현행 코스 유지',
-      effect: '런웨이 4.3개월',
-      detail: '보통 속도 유지',
+      ...scenarioCopy.maintain,
     },
     {
       id: 'attack' as const,
       icon: '⚡',
-      title: '공격 모드',
-      description: '마케팅 +50% 투자',
-      effect: '런웨이 -1.2개월',
-      detail: '금화 폭증, 도적군 증가',
+      ...scenarioCopy.attack,
     },
   ];
+
+  const handleScenarioCardClick = (scenarioId: ScenarioId) => {
+    onSelectScenario(scenarioId);
+    if (scenarioId === 'defense' || scenarioId === 'attack') {
+      onEditScenario(scenarioId);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-5">
@@ -64,7 +70,7 @@ export function ScenarioSelector({
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: index * 0.1 }}
             whileHover={{ scale: 1.02 }}
-            onClick={() => onSelectScenario(scenario.id)}
+            onClick={() => handleScenarioCardClick(scenario.id)}
             className={`
               sg-card-dark p-6 cursor-pointer relative
               border-2 transition-all duration-200
@@ -103,6 +109,11 @@ export function ScenarioSelector({
               <div className="text-sm text-slate-200/85">
                 {scenario.detail}
               </div>
+              {(scenario.id === 'defense' || scenario.id === 'attack') && (
+                <div className="text-[10px] font-bold text-amber-300/90">
+                  카드 클릭 시 문구 수정
+                </div>
+              )}
             </div>
 
             <div className="flex justify-center mt-4 gap-2">
@@ -143,6 +154,9 @@ export function ScenarioSelector({
         </PixelButton>
         <PixelButton onClick={onNext} variant="success" size="large">
           전략 세부 조정 →
+        </PixelButton>
+        <PixelButton onClick={onSimulate} variant="primary" size="large">
+          ⚔️ 바로 시뮬레이션
         </PixelButton>
       </motion.div>
     </div>

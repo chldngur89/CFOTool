@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { formatKoreanMoney } from '../../lib/finance';
 
 interface PixelGoldChestProps {
   amount: number;
@@ -119,7 +120,7 @@ export function PixelGoldChest({ amount }: PixelGoldChestProps) {
 
         <div className="text-yellow-950 font-bold text-xs mb-1">월 매출</div>
         <div className="text-2xl font-bold text-yellow-950">
-          ${(amount / 1000).toFixed(0)}K
+          {formatKoreanMoney(amount)}
         </div>
       </div>
       

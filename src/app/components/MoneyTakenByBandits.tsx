@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
+import { formatKoreanMoney } from '../lib/finance';
 
 const COIN_COUNT = 8;
 const DURATION = 2.2;
@@ -81,7 +82,7 @@ export function MoneyTakenByBandits({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
         >
-          월 지출 ${(monthlyBurn / 1000).toFixed(0)}K → 도적군에게
+          월 지출 {formatKoreanMoney(monthlyBurn)} → 도적군에게
         </motion.div>
       )}
     </div>

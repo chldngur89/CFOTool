@@ -35,6 +35,12 @@ export function ResultBattleScene({
   success,
   results,
 }: ResultBattleSceneProps) {
+  const banditVariants: Array<'hogeoa' | 'extra_1' | 'extra_2'> = [
+    'hogeoa',
+    'extra_1',
+    'extra_2',
+  ];
+
   const actions = useMemo<TurnAction[]>(() => {
     const sampled = results.filter((_, i) => i % 2 === 0).slice(0, 10);
     if (sampled.length === 0) {
@@ -203,7 +209,7 @@ export function ResultBattleScene({
               animate={{ y: [0, -2, 0] }}
               transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.14 }}
             >
-              <BanditCharacter variant="default" size={56} />
+              <BanditCharacter variant={banditVariants[i]} size={56} />
             </motion.div>
           ))}
         </motion.div>

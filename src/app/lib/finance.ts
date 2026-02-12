@@ -60,3 +60,37 @@ export function computeMonthlyProfit(monthlyRevenue: number, monthlyBurn: number
 export function computePersonnelCost(employees: number): number {
   return employees * COST_PER_EMPLOYEE;
 }
+
+interface KoreanMoneyOptions {
+  signed?: boolean;
+  minimumFractionDigits?: number;
+  maximumFractionDigits?: number;
+}
+
+/**
+ * 금액을 한국식으로 표시
+ * - 10,000 이상: 만원 단위
+ * - 10,000 미만: 원 단위
+ */
+export function formatKoreanMoney(
+  amount: number,
+  {
+    signed = false,
+    minimumFractionDigits = 0,
+    maximumFractionDigits = 1,
+  }: KoreanMoneyOptions = {}
+): string {
+  const prefix = amount < 0 ? '-' : signed && amount > 0 ? '+' : '';
+  const absoluteAmount = Math.abs(amount);
+
+  if (absoluteAmount >= 10000) {
+    const manwon = absoluteAmount / 10000;
+    return `${prefix}${manwon.toLocaleString('ko-KR', {
+      minimumFractionDigits,
+      maximumFractionDigits,
+    })}만원`;
+  }
+
+  const won = Math.round(absoluteAmount);
+  return `${prefix}${won.toLocaleString('ko-KR')}원`;
+}

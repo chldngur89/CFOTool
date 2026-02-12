@@ -4,6 +4,7 @@ import { StrategySettings, FinancialData } from './CastleDefense';
 import { HPBar } from './pixel/HPBar';
 import { ResultBattleScene } from './ResultBattleScene';
 import type { RepresentativeVariant } from './character/CharacterChoiceScreen';
+import { formatKoreanMoney } from '../lib/finance';
 
 interface SimulationResultProps {
   settings: StrategySettings;
@@ -108,9 +109,9 @@ export function SimulationResult({
                 </div>
                 <div className="text-right">
                   <div className={`font-bold text-sm ${result.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {result.profit >= 0 ? '+' : ''}${(result.profit / 1000).toFixed(1)}K
+                    {formatKoreanMoney(result.profit, { signed: true })}
                   </div>
-                  <div className="text-xs text-amber-900/60">금고: ${(result.cash / 1000).toFixed(0)}K</div>
+                  <div className="text-xs text-amber-900/60">금고: {formatKoreanMoney(result.cash)}</div>
                 </div>
                 {result.month === breakEvenMonth + 1 && breakEvenMonth >= 0 && (
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">손익분기</span>
@@ -131,7 +132,7 @@ export function SimulationResult({
                   animate={{ height: `${height}%` }}
                   transition={{ delay: i * 0.02 }}
                   className={`flex-1 rounded-t-sm ${result.profit >= 0 ? 'bg-emerald-500' : 'bg-red-500'} border border-amber-900/20`}
-                  title={`${result.month}개월: $${(result.profit / 1000).toFixed(1)}K`}
+                  title={`${result.month}개월: ${formatKoreanMoney(result.profit, { signed: true })}`}
                 />
               );
             })}
@@ -144,8 +145,8 @@ export function SimulationResult({
             <div className="grid grid-cols-2 gap-4">
               <div className="sg-card-dark p-4 text-center">
                 <div className="text-slate-400 text-xs mb-1">최종 금고</div>
-                <div className={`text-xl font-bold ${finalResult.cash > initialData.cash ? 'text-green-400' : 'text-red-400'}`}>${(finalResult.cash / 1000).toFixed(0)}K</div>
-                <div className="text-xs text-slate-500 mt-1">{finalResult.cash > initialData.cash ? '+' : ''}{((finalResult.cash - initialData.cash) / 1000).toFixed(0)}K</div>
+                <div className={`text-xl font-bold ${finalResult.cash > initialData.cash ? 'text-green-400' : 'text-red-400'}`}>{formatKoreanMoney(finalResult.cash)}</div>
+                <div className="text-xs text-slate-500 mt-1">{formatKoreanMoney(finalResult.cash - initialData.cash, { signed: true })}</div>
               </div>
               <div className="sg-card-dark p-4 text-center">
                 <div className="text-slate-400 text-xs mb-1">최종 런웨이</div>
@@ -153,7 +154,7 @@ export function SimulationResult({
               </div>
               <div className="sg-card-dark p-4 text-center">
                 <div className="text-slate-400 text-xs mb-1">월 평균 매출</div>
-                <div className="text-xl font-bold text-primary">${(finalResult.revenue / 1000).toFixed(0)}K</div>
+                <div className="text-xl font-bold text-primary">{formatKoreanMoney(finalResult.revenue)}</div>
               </div>
               <div className="sg-card-dark p-4 text-center">
                 <div className="text-slate-400 text-xs mb-1">손익분기점</div>

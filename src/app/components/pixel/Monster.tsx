@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { formatKoreanMoney } from '../../lib/finance';
 
 interface MonsterProps {
   type: 'personnel' | 'marketing' | 'office';
@@ -57,7 +58,7 @@ export function Monster({ type, cost, label, count }: MonsterProps) {
       <div className="text-center">
         <div className="text-yellow-200 font-bold mb-2">{label}</div>
         <div className="text-2xl font-bold text-red-300">
-          ${(cost / 1000).toFixed(1)}K
+          {formatKoreanMoney(cost)}
         </div>
         {count && (
           <div className="text-xs text-yellow-300 mt-1">

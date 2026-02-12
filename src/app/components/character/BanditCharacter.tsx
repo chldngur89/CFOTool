@@ -8,7 +8,13 @@ import { SpriteSheetBmp } from './SpriteSheetBmp';
  * - default: 기존 atk.bmp 스프라이트 시트
  */
 interface BanditCharacterProps {
-  variant?: 'default' | 'rebel_staff' | 'rebel_staff_sheet';
+  variant?:
+    | 'default'
+    | 'rebel_staff'
+    | 'rebel_staff_sheet'
+    | 'extra_1'
+    | 'extra_2'
+    | 'hogeoa';
   size?: number;
   className?: string;
 }
@@ -25,6 +31,10 @@ const REBEL_STAFF_SHEET = {
   layout: 'vertical' as const,
   frameCount: 2,
 };
+
+const EXTRA_BANDIT_1 = '/character/bandit/atk_extra_1.bmp';
+const EXTRA_BANDIT_2 = '/character/bandit/atk_extra_2.bmp';
+const HOGEOA_BANDIT_ATK = '/character/bandit/hogeoa_atk.bmp';
 
 const DEFAULT_SLICE = {
   frameHeight: 64,
@@ -58,6 +68,36 @@ export function BanditCharacter({
         displaySize={size}
         frameInterval={140}
         alt="황건적 (봉)"
+        className={className}
+      />
+    );
+  }
+
+  if (variant === 'extra_1' || variant === 'extra_2') {
+    return (
+      <SpriteSheetBmp
+        src={variant === 'extra_1' ? EXTRA_BANDIT_1 : EXTRA_BANDIT_2}
+        frameHeight={DEFAULT_SLICE.frameHeight}
+        frameCount={DEFAULT_SLICE.frameCount}
+        layout={DEFAULT_SLICE.layout}
+        displaySize={size}
+        frameInterval={120}
+        alt={variant === 'extra_1' ? '황건적 A' : '황건적 B'}
+        className={className}
+      />
+    );
+  }
+
+  if (variant === 'hogeoa') {
+    return (
+      <SpriteSheetBmp
+        src={HOGEOA_BANDIT_ATK}
+        frameHeight={DEFAULT_SLICE.frameHeight}
+        frameCount={DEFAULT_SLICE.frameCount}
+        layout={DEFAULT_SLICE.layout}
+        displaySize={size}
+        frameInterval={120}
+        alt="호거아"
         className={className}
       />
     );

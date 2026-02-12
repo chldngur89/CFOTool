@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { BanditCharacter } from '../character/BanditCharacter';
+import { formatKoreanMoney } from '../../lib/finance';
 
 interface PixelMonsterProps {
   type: 'personnel' | 'marketing' | 'office';
@@ -22,6 +23,12 @@ export function PixelMonster({ type, cost, label, count }: PixelMonsterProps) {
   };
 
   const banditsToShow = count ? Math.min(count, 5) : 3;
+  const banditVariant =
+    type === 'personnel'
+      ? 'hogeoa'
+      : type === 'marketing'
+        ? 'extra_2'
+        : 'extra_1';
 
   return (
     <motion.div
@@ -43,7 +50,7 @@ export function PixelMonster({ type, cost, label, count }: PixelMonsterProps) {
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: i * 0.1 }}
           >
-            <BanditCharacter variant="default" size={52} />
+            <BanditCharacter variant={banditVariant} size={52} />
           </motion.div>
         ))}
       </div>
@@ -52,7 +59,7 @@ export function PixelMonster({ type, cost, label, count }: PixelMonsterProps) {
       <div className="text-center">
         <div className="mb-2 text-sm font-bold text-amber-100">{label}</div>
         <div className="text-xl font-black text-amber-300">
-          ${(cost / 1000).toFixed(1)}K
+          {formatKoreanMoney(cost)}
         </div>
         {count && (
           <div className="mt-1 text-xs text-slate-300">
