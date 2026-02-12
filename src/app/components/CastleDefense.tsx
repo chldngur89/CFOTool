@@ -136,14 +136,7 @@ export function CastleDefense({
     employees: 8,
     marketingCost: 8000,
     officeCost: 2000,
-    historicalData: [
-      { month: '9월', revenue: 38000, burn: 32000 },
-      { month: '10월', revenue: 42000, burn: 33000 },
-      { month: '11월', revenue: 40000, burn: 36000 },
-      { month: '12월', revenue: 43000, burn: 34000 },
-      { month: '1월', revenue: 44000, burn: 35000 },
-      { month: '2월', revenue: 45000, burn: 35000 },
-    ],
+    historicalData: [],
   });
 
   const [strategySettings, setStrategySettings] = useState<StrategySettings>({

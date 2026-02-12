@@ -44,3 +44,16 @@ npm run build
 |--------|------|
 | `npm run dev` | 개발 서버 실행 (기본: http://localhost:5173/) |
 | `npm run build` | 프로덕션 빌드 → `dist/` |
+
+## AI 전략 추천 (Ollama)
+
+전략 화면의 `AI 추천 Top3 생성`/`AI 최적안 자동 적용`은 Ollama 서버를 호출합니다.
+
+선택 환경변수:
+
+```bash
+VITE_OLLAMA_BASE_URL=http://localhost:11434
+VITE_OLLAMA_MODEL=llama3.1:latest
+```
+
+설정이 없으면 기본값(`http://localhost:11434`, `llama3.1:latest`)을 사용합니다.

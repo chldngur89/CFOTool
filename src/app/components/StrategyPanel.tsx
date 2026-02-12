@@ -1,8 +1,14 @@
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { PixelButton } from './pixel/PixelButton';
 import { StrategySettings, FinancialData } from './CastleDefense';
 import { Slider } from './ui/slider';
 import { formatKoreanMoney } from '../lib/finance';
+import {
+  calculateStrategyProjection,
+  getAiStrategyRecommendations,
+  type AiStrategyRecommendation,
+} from '../lib/aiStrategyAdvisor';
 
 interface StrategyPanelProps {
   settings: StrategySettings;
@@ -12,36 +18,53 @@ interface StrategyPanelProps {
   onBack: () => void;
 }
 
+const settingLabels: Record<keyof StrategySettings, { label: string; suffix: string }> = {
+  revenueGrowth: { label: '매출 성장', suffix: '%' },
+  headcountChange: { label: '인원 변동', suffix: '명' },
+  marketingIncrease: { label: '마케팅 투자', suffix: '%' },
+  priceIncrease: { label: '가격 인상', suffix: '%' },
+};
+
 export function StrategyPanel({
   settings,
   onSettingsChange,
   data,
   onSimulate,
-  onBack
+  onBack,
 }: StrategyPanelProps) {
-  const calculateProjection = () => {
-    const newRevenue = data.monthlyRevenue * (1 + settings.revenueGrowth / 100);
-    const employeeCost = (data.employees + settings.headcountChange) * 3125;
-    const marketingCost = data.marketingCost * (1 + settings.marketingIncrease / 100);
-    const newBurn = employeeCost + marketingCost + data.officeCost;
-    const newRunway = data.cash / newBurn;
+  const projection = useMemo(
+    () => calculateStrategyProjection(data, settings),
+    [data, settings]
+  );
 
-    return {
-      revenue: newRevenue,
-      burn: newBurn,
-      runway: newRunway,
-      profit: newRevenue - newBurn,
-    };
-  };
-
-  const projection = calculateProjection();
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const [aiSource, setAiSource] = useState<'ollama' | 'fallback' | null>(null);
+  const [aiRecommendations, setAiRecommendations] = useState<AiStrategyRecommendation[]>([]);
 
   const sliders = [
-    { id: 'revenueGrowth', icon: '📈', label: '매출 성장률', value: settings.revenueGrowth, min: -50, max: 100, step: 5, suffix: '%', color: 'green' },
-    { id: 'headcountChange', icon: '👥', label: '인원 변동', value: settings.headcountChange, min: -5, max: 10, step: 1, suffix: '명', color: 'blue' },
-    { id: 'marketingIncrease', icon: '📢', label: '마케팅 투자', value: settings.marketingIncrease, min: -50, max: 200, step: 10, suffix: '%', color: 'orange' },
-    { id: 'priceIncrease', icon: '💸', label: '가격 인상', value: settings.priceIncrease, min: -20, max: 50, step: 5, suffix: '%', color: 'purple' },
+    { id: 'revenueGrowth' as const, icon: '📈', label: '매출 성장률', value: settings.revenueGrowth, min: -50, max: 100, step: 5, suffix: '%' },
+    { id: 'headcountChange' as const, icon: '👥', label: '인원 변동', value: settings.headcountChange, min: -5, max: 10, step: 1, suffix: '명' },
+    { id: 'marketingIncrease' as const, icon: '📢', label: '마케팅 투자', value: settings.marketingIncrease, min: -50, max: 200, step: 10, suffix: '%' },
+    { id: 'priceIncrease' as const, icon: '💸', label: '가격 인상', value: settings.priceIncrease, min: -20, max: 50, step: 5, suffix: '%' },
   ];
+
+  const handleAiRecommendation = async (autoApplyTopOne: boolean) => {
+    setAiLoading(true);
+    setAiMessage(null);
+
+    const result = await getAiStrategyRecommendations(data, settings);
+    setAiRecommendations(result.recommendations);
+    setAiSource(result.source);
+    setAiMessage(result.message);
+
+    if (autoApplyTopOne && result.recommendations.length > 0) {
+      onSettingsChange(result.recommendations[0].settings);
+      setAiMessage((prev) => `${prev ?? ''} · 1순위 전략을 자동 반영했습니다.`);
+    }
+
+    setAiLoading(false);
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-5">
@@ -127,6 +150,86 @@ export function StrategyPanel({
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="sg-panel-dark p-6">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h4 className="sg-heading">🤖 AI 전략관</h4>
+              {aiSource && (
+                <span className={`rounded-md border px-2 py-1 text-[10px] font-bold ${aiSource === 'ollama' ? 'border-emerald-500/50 bg-emerald-900/35 text-emerald-200' : 'border-amber-500/50 bg-amber-900/35 text-amber-200'}`}>
+                  {aiSource === 'ollama' ? 'LLama 판단' : '기본 추천'}
+                </span>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Ollama URL: <code>VITE_OLLAMA_BASE_URL</code> / 모델: <code>VITE_OLLAMA_MODEL</code>
+            </p>
+
+            <div className="sg-command-row mt-4 justify-start">
+              <PixelButton
+                onClick={() => {
+                  void handleAiRecommendation(false);
+                }}
+                variant="primary"
+                size="small"
+                disabled={aiLoading}
+              >
+                {aiLoading ? '분석 중...' : '🤖 AI 추천 Top3 생성'}
+              </PixelButton>
+
+              <PixelButton
+                onClick={() => {
+                  void handleAiRecommendation(true);
+                }}
+                variant="success"
+                size="small"
+                disabled={aiLoading}
+              >
+                {aiLoading ? '분석 중...' : '⚡ AI 최적안 자동 적용'}
+              </PixelButton>
+            </div>
+
+            {aiMessage && (
+              <div className="mt-3 rounded-md border border-amber-700/60 bg-[#1a2c4f] px-3 py-2 text-xs text-amber-100">
+                {aiMessage}
+              </div>
+            )}
+
+            {aiRecommendations.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {aiRecommendations.map((recommendation, index) => (
+                  <div key={`${recommendation.title}-${index}`} className="sg-card-dark p-3">
+                    <div className="mb-1 flex items-start justify-between gap-2">
+                      <div className="text-sm font-black text-amber-100">{index + 1}. {recommendation.title}</div>
+                      <button
+                        type="button"
+                        onClick={() => onSettingsChange(recommendation.settings)}
+                        className="rounded-md border border-amber-500/70 bg-amber-400 px-2 py-1 text-[10px] font-black text-[#2f2207]"
+                      >
+                        이 안 적용
+                      </button>
+                    </div>
+                    <p className="text-xs leading-relaxed text-slate-200/95">{recommendation.reason}</p>
+
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+                      {(Object.keys(settingLabels) as Array<keyof StrategySettings>).map((key) => (
+                        <div key={key} className="rounded-sm border border-amber-700/30 bg-[#1f325a] px-2 py-1">
+                          {settingLabels[key].label}: {recommendation.settings[key] > 0 ? '+' : ''}
+                          {recommendation.settings[key]}
+                          {settingLabels[key].suffix}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-3 text-[11px] font-bold text-amber-100">
+                      <span>순이익 {formatKoreanMoney(recommendation.projection.profit, { signed: true })}</span>
+                      <span>런웨이 {recommendation.projection.runway.toFixed(1)}개월</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="sg-panel p-6">
