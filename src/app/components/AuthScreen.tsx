@@ -32,9 +32,12 @@ export function AuthScreen({
   initialLocalProfile,
   onLocalSignup,
 }: AuthScreenProps) {
-  const [mode, setMode] = useState<AuthMode>(forceSignup ? 'signup' : 'signup');
+  const [mode, setMode] = useState<AuthMode>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [fullName, setFullName] = useState(initialLocalProfile?.fullName ?? '');
   const [companyName, setCompanyName] = useState(initialLocalProfile?.companyName ?? '');
   const [variant, setVariant] = useState<RepresentativeVariant>(
@@ -59,6 +62,10 @@ export function AuthScreen({
       }
 
       if (isSignup) {
+        if (!localMode && password !== passwordConfirm) {
+          throw new Error('비밀번호와 비밀번호 확인이 일치하지 않습니다.');
+        }
+
         if (!fullName.trim() || !companyName.trim()) {
           throw new Error('성함과 회사명을 입력해주세요.');
         }
@@ -92,7 +99,7 @@ export function AuthScreen({
 
         if (signUpError) throw signUpError;
 
-        if (data.user) {
+        if (data.user && data.session) {
           await upsertCfoProfile({
             userId: data.user.id,
             email: data.user.email,
@@ -102,6 +109,16 @@ export function AuthScreen({
         }
 
         if (!data.session) {
+          const { error: signInAfterSignUpError } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          });
+
+          if (!signInAfterSignUpError) {
+            setNotice('회원가입이 완료되어 자동 로그인되었습니다.');
+            return;
+          }
+
           setNotice('가입 확인 메일을 보냈습니다. 메일 인증 후 로그인해주세요.');
           setMode('signin');
         }
@@ -184,18 +201,50 @@ export function AuthScreen({
 
           <label className="block text-xs font-bold text-amber-100">
             비밀번호
-            <Input
-              type="password"
-              autoComplete={isSignup ? 'new-password' : 'current-password'}
-              className="mt-1 border-amber-700/70 bg-[#1d3159] text-amber-100"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={localMode}
-            />
+            <div className="relative mt-1">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={isSignup ? 'new-password' : 'current-password'}
+                className="border-amber-700/70 bg-[#1d3159] pr-16 text-amber-100"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={localMode}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                disabled={localMode}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded border border-amber-700/70 bg-[#223964] px-2 py-0.5 text-[10px] font-bold text-amber-100 disabled:opacity-40"
+              >
+                {showPassword ? '숨김' : '표시'}
+              </button>
+            </div>
           </label>
 
           {isSignup && (
             <>
+              <label className="block text-xs font-bold text-amber-100">
+                비밀번호 확인
+                <div className="relative mt-1">
+                  <Input
+                    type={showPasswordConfirm ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    className="border-amber-700/70 bg-[#1d3159] pr-16 text-amber-100"
+                    value={passwordConfirm}
+                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    disabled={localMode}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordConfirm((v) => !v)}
+                    disabled={localMode}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded border border-amber-700/70 bg-[#223964] px-2 py-0.5 text-[10px] font-bold text-amber-100 disabled:opacity-40"
+                  >
+                    {showPasswordConfirm ? '숨김' : '표시'}
+                  </button>
+                </div>
+              </label>
+
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="block text-xs font-bold text-amber-100">
                   대표 성함
@@ -230,6 +279,7 @@ export function AuthScreen({
                       <RepresentativeCharacter variant="strategist" size={72} />
                     </div>
                     <div className="text-xs font-bold text-amber-100">책사</div>
+                    <div className="mt-1 text-[10px] text-slate-300">난세를 읽는 지략가</div>
                   </button>
 
                   <button
@@ -241,6 +291,7 @@ export function AuthScreen({
                       <RepresentativeCharacter variant="general" size={72} />
                     </div>
                     <div className="text-xs font-bold text-amber-100">장군</div>
+                    <div className="mt-1 text-[10px] text-slate-300">돌파를 이끄는 결단가</div>
                   </button>
                 </div>
               </div>
