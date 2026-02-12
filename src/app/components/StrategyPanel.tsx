@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { PixelButton } from './pixel/PixelButton';
-import { StrategySettings, FinancialData } from './CastleDefense';
+import { StrategySettings, FinancialData, ScenarioId } from './CastleDefense';
 import { Slider } from './ui/slider';
 import { formatKoreanMoney } from '../lib/finance';
 import {
@@ -14,6 +14,7 @@ interface StrategyPanelProps {
   settings: StrategySettings;
   onSettingsChange: (settings: StrategySettings) => void;
   data: FinancialData;
+  scenario: ScenarioId;
   onSimulate: () => void;
   onBack: () => void;
 }
@@ -29,6 +30,7 @@ export function StrategyPanel({
   settings,
   onSettingsChange,
   data,
+  scenario,
   onSimulate,
   onBack,
 }: StrategyPanelProps) {
@@ -41,6 +43,7 @@ export function StrategyPanel({
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [aiSource, setAiSource] = useState<'ollama' | 'fallback' | null>(null);
   const [aiRecommendations, setAiRecommendations] = useState<AiStrategyRecommendation[]>([]);
+  const autoAppliedScenarioRef = useRef<ScenarioId | null>(null);
 
   const sliders = [
     { id: 'revenueGrowth' as const, icon: '📈', label: '매출 성장률', value: settings.revenueGrowth, min: -50, max: 100, step: 5, suffix: '%' },
@@ -53,18 +56,30 @@ export function StrategyPanel({
     setAiLoading(true);
     setAiMessage(null);
 
-    const result = await getAiStrategyRecommendations(data, settings);
-    setAiRecommendations(result.recommendations);
-    setAiSource(result.source);
-    setAiMessage(result.message);
+    try {
+      const result = await getAiStrategyRecommendations(data, settings, scenario);
+      setAiRecommendations(result.recommendations);
+      setAiSource(result.source);
+      setAiMessage(result.message);
 
-    if (autoApplyTopOne && result.recommendations.length > 0) {
-      onSettingsChange(result.recommendations[0].settings);
-      setAiMessage((prev) => `${prev ?? ''} · 1순위 전략을 자동 반영했습니다.`);
+      if (autoApplyTopOne && result.recommendations.length > 0) {
+        onSettingsChange(result.recommendations[0].settings);
+        setAiMessage((prev) => `${prev ?? ''} · 1순위 전략을 자동 반영했습니다.`);
+      }
+    } catch (_) {
+      setAiSource('fallback');
+      setAiMessage('지금도 충분히 잘하고 있습니다. 다음 수를 차분히 다시 고르면 됩니다.');
+    } finally {
+      setAiLoading(false);
     }
-
-    setAiLoading(false);
   };
+
+  useEffect(() => {
+    if (scenario !== 'attack' && scenario !== 'defense') return;
+    if (autoAppliedScenarioRef.current === scenario) return;
+    autoAppliedScenarioRef.current = scenario;
+    void handleAiRecommendation(true);
+  }, [scenario]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-5">

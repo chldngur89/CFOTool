@@ -1,4 +1,11 @@
-import type { FinancialData, StrategySettings } from '../components/CastleDefense';
+import type {
+  FinancialData,
+  ScenarioId,
+  StrategySettings,
+} from '../components/CastleDefense';
+import {
+  COST_PER_EMPLOYEE,
+} from './finance';
 
 const STRATEGY_LIMITS = {
   revenueGrowth: { min: -50, max: 100, step: 5 },
@@ -47,6 +54,18 @@ export interface AiRecommendationResult {
   baseUrl: string;
   message: string;
 }
+
+const SCENARIO_STYLE_LABEL: Record<ScenarioId, string> = {
+  defense: '방어적 선택',
+  maintain: '현상 유지',
+  attack: '공격적 선택',
+};
+
+const SCENARIO_STYLE_HINT: Record<ScenarioId, string> = {
+  defense: '지출 안정화와 런웨이 방어를 최우선으로 두고, 성장은 보수적으로 유지한다.',
+  maintain: '비용과 성장의 균형을 유지하며 지나친 변동을 피한다.',
+  attack: '성장률을 우선하되, 런웨이가 붕괴되지 않도록 안전장치를 함께 둔다.',
+};
 
 const clampNumber = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
@@ -97,8 +116,9 @@ export function calculateStrategyProjection(
   data: FinancialData,
   settings: StrategySettings
 ): StrategyProjection {
+  const nextEmployees = Math.max(0, data.employees + settings.headcountChange);
   const newRevenue = data.monthlyRevenue * (1 + settings.revenueGrowth / 100);
-  const employeeCost = (data.employees + settings.headcountChange) * 3125;
+  const employeeCost = nextEmployees * COST_PER_EMPLOYEE;
   const marketingCost = data.marketingCost * (1 + settings.marketingIncrease / 100);
   const newBurn = employeeCost + marketingCost + data.officeCost;
   const newRunway = data.cash / newBurn;
@@ -125,34 +145,89 @@ function extractJsonObject(raw: string): string | null {
 
 function buildFallbackRecommendations(
   data: FinancialData,
-  currentSettings: StrategySettings
+  currentSettings: StrategySettings,
+  scenario: ScenarioId
 ): AiStrategyRecommendation[] {
+  const scenarioAdjustments: Record<
+    ScenarioId,
+    {
+      safe: Partial<StrategySettings>;
+      balanced: Partial<StrategySettings>;
+      aggressive: Partial<StrategySettings>;
+    }
+  > = {
+    defense: {
+      safe: { revenueGrowth: 10, headcountChange: 0, marketingIncrease: 10, priceIncrease: 5 },
+      balanced: { revenueGrowth: 20, headcountChange: 1, marketingIncrease: 25, priceIncrease: 10 },
+      aggressive: { revenueGrowth: 30, headcountChange: 2, marketingIncrease: 50, priceIncrease: 12 },
+    },
+    maintain: {
+      safe: { revenueGrowth: 15, headcountChange: 1, marketingIncrease: 20, priceIncrease: 5 },
+      balanced: { revenueGrowth: 30, headcountChange: 2, marketingIncrease: 45, priceIncrease: 10 },
+      aggressive: { revenueGrowth: 45, headcountChange: 3, marketingIncrease: 80, priceIncrease: 15 },
+    },
+    attack: {
+      safe: { revenueGrowth: 25, headcountChange: 2, marketingIncrease: 45, priceIncrease: 8 },
+      balanced: { revenueGrowth: 40, headcountChange: 3, marketingIncrease: 75, priceIncrease: 12 },
+      aggressive: { revenueGrowth: 60, headcountChange: 5, marketingIncrease: 120, priceIncrease: 18 },
+    },
+  };
+
+  const picked = scenarioAdjustments[scenario];
+
   const safeSettings = normalizeSettings(
     {
-      revenueGrowth: Math.max(currentSettings.revenueGrowth, 15),
-      headcountChange: Math.min(currentSettings.headcountChange, 1),
-      marketingIncrease: Math.min(currentSettings.marketingIncrease, 20),
-      priceIncrease: Math.max(currentSettings.priceIncrease, 0),
+      revenueGrowth: Math.max(currentSettings.revenueGrowth, picked.safe.revenueGrowth ?? 15),
+      headcountChange: Math.min(
+        Math.max(currentSettings.headcountChange, 0),
+        picked.safe.headcountChange ?? 1
+      ),
+      marketingIncrease: Math.min(
+        Math.max(currentSettings.marketingIncrease, 0),
+        picked.safe.marketingIncrease ?? 20
+      ),
+      priceIncrease: Math.max(currentSettings.priceIncrease, picked.safe.priceIncrease ?? 0),
     },
     currentSettings
   );
 
   const balancedSettings = normalizeSettings(
     {
-      revenueGrowth: Math.max(currentSettings.revenueGrowth, 30),
-      headcountChange: Math.min(Math.max(currentSettings.headcountChange, 1), 3),
-      marketingIncrease: Math.min(Math.max(currentSettings.marketingIncrease, 35), 60),
-      priceIncrease: Math.min(Math.max(currentSettings.priceIncrease, 5), 15),
+      revenueGrowth: Math.max(currentSettings.revenueGrowth, picked.balanced.revenueGrowth ?? 30),
+      headcountChange: Math.min(
+        Math.max(currentSettings.headcountChange, picked.balanced.headcountChange ?? 1),
+        4
+      ),
+      marketingIncrease: Math.min(
+        Math.max(currentSettings.marketingIncrease, picked.balanced.marketingIncrease ?? 35),
+        100
+      ),
+      priceIncrease: Math.min(
+        Math.max(currentSettings.priceIncrease, picked.balanced.priceIncrease ?? 5),
+        20
+      ),
     },
     currentSettings
   );
 
   const aggressiveSettings = normalizeSettings(
     {
-      revenueGrowth: Math.min(Math.max(currentSettings.revenueGrowth, 45), 75),
-      headcountChange: Math.min(Math.max(currentSettings.headcountChange, 2), 5),
-      marketingIncrease: Math.min(Math.max(currentSettings.marketingIncrease, 70), 120),
-      priceIncrease: Math.min(Math.max(currentSettings.priceIncrease, 8), 18),
+      revenueGrowth: Math.min(
+        Math.max(currentSettings.revenueGrowth, picked.aggressive.revenueGrowth ?? 45),
+        85
+      ),
+      headcountChange: Math.min(
+        Math.max(currentSettings.headcountChange, picked.aggressive.headcountChange ?? 2),
+        6
+      ),
+      marketingIncrease: Math.min(
+        Math.max(currentSettings.marketingIncrease, picked.aggressive.marketingIncrease ?? 70),
+        140
+      ),
+      priceIncrease: Math.min(
+        Math.max(currentSettings.priceIncrease, picked.aggressive.priceIncrease ?? 8),
+        22
+      ),
     },
     currentSettings
   );
@@ -184,12 +259,15 @@ function buildFallbackRecommendations(
 
 async function requestOllamaRecommendations(
   data: FinancialData,
-  currentSettings: StrategySettings
+  currentSettings: StrategySettings,
+  scenario: ScenarioId
 ): Promise<AiStrategyRecommendation[]> {
   const prompt = [
     '너는 CFO 전략 시뮬레이션 보좌관이다.',
     '목표: 24개월 생존 가능성과 월 순이익 개선을 동시에 고려해 전략 3개를 제안하라.',
     '반드시 서로 다른 성향(안정/균형/공격)으로 제시하라.',
+    `현재 사용자가 선택한 진형은 "${SCENARIO_STYLE_LABEL[scenario]}"이다.`,
+    `진형 힌트: ${SCENARIO_STYLE_HINT[scenario]}`,
     '응답은 순수 JSON으로만 반환한다.',
     'JSON 스키마:',
     '{"recommendations":[{"title":"string","reason":"string","settings":{"revenueGrowth":number,"headcountChange":number,"marketingIncrease":number,"priceIncrease":number}}]}',
@@ -204,6 +282,7 @@ async function requestOllamaRecommendations(
       monthlyRevenue: data.monthlyRevenue,
       monthlyBurn: data.monthlyBurn,
       employees: data.employees,
+      personnelCost: data.personnelCost,
       marketingCost: data.marketingCost,
       officeCost: data.officeCost,
       runway: data.runway,
@@ -271,27 +350,32 @@ async function requestOllamaRecommendations(
 
 export async function getAiStrategyRecommendations(
   data: FinancialData,
-  currentSettings: StrategySettings
+  currentSettings: StrategySettings,
+  scenario: ScenarioId = 'maintain'
 ): Promise<AiRecommendationResult> {
   try {
-    const recommendations = await requestOllamaRecommendations(data, currentSettings);
+    const recommendations = await requestOllamaRecommendations(data, currentSettings, scenario);
     return {
       recommendations,
       source: 'ollama',
       model: OLLAMA_MODEL,
       baseUrl: OLLAMA_BASE_URL,
-      message: `Ollama(${OLLAMA_MODEL}) 판단 완료`,
+      message: `${SCENARIO_STYLE_LABEL[scenario]} 기준으로 AI 전략을 정리했습니다.`,
     };
   } catch (error) {
-    const fallback = buildFallbackRecommendations(data, currentSettings);
-    const reason = error instanceof Error ? error.message : '알 수 없는 오류';
+    const fallback = buildFallbackRecommendations(data, currentSettings, scenario);
+    if (error instanceof Error) {
+      // 개발 환경에서는 원인 파악을 위해 로그를 남기되, UI에는 응원형 멘트만 노출한다.
+      console.warn('[AI Advisor] fallback engaged:', error.message);
+    }
 
     return {
       recommendations: fallback,
       source: 'fallback',
       model: OLLAMA_MODEL,
       baseUrl: OLLAMA_BASE_URL,
-      message: `Ollama 연결 실패로 기본 추천을 사용했습니다. (${reason})`,
+      message:
+        '바람이 거세도 전열은 무너지지 않습니다. 지금 흐름에 맞춰 기본 전략을 준비했어요.',
     };
   }
 }

@@ -7,9 +7,10 @@ interface PixelMonsterProps {
   cost: number;
   label: string;
   count?: number;
+  onClick?: () => void;
 }
 
-export function PixelMonster({ type, cost, label, count }: PixelMonsterProps) {
+export function PixelMonster({ type, cost, label, count, onClick }: PixelMonsterProps) {
 
   const getMonsterColor = () => {
     switch (type) {
@@ -31,10 +32,15 @@ export function PixelMonster({ type, cost, label, count }: PixelMonsterProps) {
         : 'extra_1';
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
       initial={{ x: 100, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className={`bg-gradient-to-b ${getMonsterColor()} border-2 rounded-2xl p-4 relative shadow-sm`}
+      whileHover={onClick ? { scale: 1.02 } : {}}
+      whileTap={onClick ? { scale: 0.98 } : {}}
+      onClick={onClick}
+      disabled={!onClick}
+      className={`bg-gradient-to-b ${getMonsterColor()} border-2 rounded-2xl p-4 relative shadow-sm w-full text-left appearance-none focus-visible:outline-none disabled:opacity-100 ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
       {/* 도적군 헤더 - 전투 느낌 */}
       <div className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 rounded-md border border-red-900 bg-red-700 px-3 py-1 text-[10px] font-black text-red-100 whitespace-nowrap shadow-sm">
@@ -68,14 +74,11 @@ export function PixelMonster({ type, cost, label, count }: PixelMonsterProps) {
         )}
       </div>
 
-      {/* 공격 화살 효과 */}
-      <motion.div
-        className="absolute -left-8 top-1/2 transform -translate-y-1/2 text-2xl text-primary"
-        animate={{ x: [0, -10, 0] }}
-        transition={{ duration: 1, repeat: Infinity }}
-      >
-        ←
-      </motion.div>
-    </motion.div>
+      {onClick && (
+        <div className="mt-2 text-center text-[10px] font-bold text-amber-200/90">
+          클릭하여 금액 수정
+        </div>
+      )}
+    </motion.button>
   );
 }

@@ -74,7 +74,7 @@ export function MoneyTakenByBandits({
             </motion.div>
           ))}
       </div>
-      {/* "월 지출 → 도적군" 라벨 (선택) */}
+      {/* "월 지출" 라벨 (선택) */}
       {monthlyBurn > 0 && (
         <motion.div
           className="absolute left-1/2 top-[72%] -translate-x-1/2 rounded-md border border-amber-700/70 bg-[#16233e]/90 px-3 py-1.5 text-xs font-bold text-amber-200 shadow-[inset_0_0_0_1px_rgba(255,223,138,0.2)]"
@@ -82,7 +82,7 @@ export function MoneyTakenByBandits({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
         >
-          월 지출 {formatKoreanMoney(monthlyBurn)} → 도적군에게
+          이번 달 운영비 흐름: {formatKoreanMoney(monthlyBurn)}
         </motion.div>
       )}
     </div>

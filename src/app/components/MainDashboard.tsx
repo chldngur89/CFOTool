@@ -25,6 +25,7 @@ interface MainDashboardProps {
   representativeVariant: RepresentativeVariant;
   onRepresentativeVariantChange: (variant: RepresentativeVariant) => void;
   onEditMoney: () => void;
+  onEditCost: (target: 'personnel' | 'marketing' | 'office') => void;
   userDisplayName?: string;
   companyName?: string;
 }
@@ -35,11 +36,16 @@ export function MainDashboard({
   representativeVariant,
   onRepresentativeVariantChange,
   onEditMoney,
+  onEditCost,
   userDisplayName,
   companyName,
 }: MainDashboardProps) {
   // 재무 판단: 월 지출·런웨이 기준은 lib/finance.ts 참고
-  const monthlyBurn = computeMonthlyBurn(data.employees, data.marketingCost, data.officeCost);
+  const monthlyBurn = computeMonthlyBurn(
+    data.personnelCost,
+    data.marketingCost,
+    data.officeCost
+  );
   const runwayStatus = getRunwayStatus(data.runway);
   const hpPercentage = Math.min((data.runway / 12) * 100, 100); // 12개월 = 100%
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -52,6 +58,7 @@ export function MainDashboard({
       : 1;
   const [encouragementIndex, setEncouragementIndex] = useState(0);
   const titleName = userDisplayName?.trim() || '대표';
+  const companyLabel = companyName?.trim() || '우리 회사';
   const subtitle = companyName?.trim()
     ? `${companyName.trim()} 재무 전장 시뮬레이터`
     : '삼국지 전장 감성 재무 시뮬레이터';
@@ -138,7 +145,7 @@ export function MainDashboard({
               >
                 <RepresentativeCharacter variant={representativeVariant} size={88} />
                 <div className="mt-2 flex items-center justify-center gap-1 rounded-md border border-amber-600/70 bg-[#1d2e54]/90 px-2 py-1 text-xs font-bold text-amber-100">
-                  대표 CEO
+                  {companyLabel}
                   <span className="text-[10px] text-slate-300">(클릭하여 변경)</span>
                 </div>
               </motion.div>
@@ -169,26 +176,29 @@ export function MainDashboard({
         <div className="relative z-10">
           <div className="text-center mb-4">
             <div className="inline-block rounded-md border border-amber-600/70 bg-[#1b2a4a]/90 px-4 py-2 text-sm font-bold text-amber-100 shadow-[inset_0_0_0_1px_rgba(255,226,143,0.24)]">
-              ⚔️ 도적군이 가져가는 월 비용
+              ⚔️ 이번 달 작전 운영비 브리핑
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
             <PixelMonster
               type="personnel"
-              cost={data.employees * 3125}
+              cost={data.personnelCost}
               label="인건비"
               count={data.employees}
+              onClick={() => onEditCost('personnel')}
             />
             <PixelMonster
               type="marketing"
               cost={data.marketingCost}
               label="마케팅비"
+              onClick={() => onEditCost('marketing')}
             />
             <PixelMonster
               type="office"
               cost={data.officeCost}
               label="사무실비"
+              onClick={() => onEditCost('office')}
             />
           </div>
         </div>

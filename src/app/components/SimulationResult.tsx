@@ -4,7 +4,10 @@ import { StrategySettings, FinancialData } from './CastleDefense';
 import { HPBar } from './pixel/HPBar';
 import { ResultBattleScene } from './ResultBattleScene';
 import type { RepresentativeVariant } from './character/CharacterChoiceScreen';
-import { formatKoreanMoney } from '../lib/finance';
+import {
+  COST_PER_EMPLOYEE,
+  formatKoreanMoney,
+} from '../lib/finance';
 
 interface SimulationResultProps {
   settings: StrategySettings;
@@ -27,7 +30,8 @@ export function SimulationResult({
     const results = [];
     let currentCash = initialData.cash;
     let currentRevenue = initialData.monthlyRevenue;
-    const employeeCost = (initialData.employees + settings.headcountChange) * 3125;
+    const nextEmployees = Math.max(0, initialData.employees + settings.headcountChange);
+    const employeeCost = nextEmployees * COST_PER_EMPLOYEE;
     const marketingCost = initialData.marketingCost * (1 + settings.marketingIncrease / 100);
     const fixedCost = initialData.officeCost;
 

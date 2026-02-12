@@ -5,8 +5,10 @@
  * - 판단: 런웨이 구간별 위험/주의/안전
  */
 
-/** 인당 월 인건비 (USD) */
-export const COST_PER_EMPLOYEE = 3125;
+/** 인당 월 인건비 기준값 (300만원) */
+export const COST_PER_EMPLOYEE = 3_000_000;
+/** 월 인건비 최소값 (직원 1명 기준과 동일) */
+export const MIN_PERSONNEL_MONTHLY_COST = COST_PER_EMPLOYEE;
 
 /** 런웨이 판단 기준 (개월) */
 export const RUNWAY_DANGER_THRESHOLD = 3;   // 이하면 위험
@@ -19,11 +21,11 @@ export type RunwayStatus = 'danger' | 'warning' | 'safe';
  * 인건비 + 마케팅비 + 사무실비
  */
 export function computeMonthlyBurn(
-  employees: number,
+  personnelCost: number,
   marketingCost: number,
   officeCost: number
 ): number {
-  return employees * COST_PER_EMPLOYEE + marketingCost + officeCost;
+  return personnelCost + marketingCost + officeCost;
 }
 
 /**
@@ -57,40 +59,63 @@ export function computeMonthlyProfit(monthlyRevenue: number, monthlyBurn: number
 /**
  * 인건비만 계산 (직원 수 × 단가)
  */
-export function computePersonnelCost(employees: number): number {
-  return employees * COST_PER_EMPLOYEE;
+export function computePersonnelCost(
+  employees: number,
+  {
+    minimum = 0,
+    unitCost = COST_PER_EMPLOYEE,
+  }: { minimum?: number; unitCost?: number } = {}
+): number {
+  const raw = Math.max(0, employees) * unitCost;
+  if (employees <= 0) return 0;
+  return Math.max(minimum, raw);
 }
 
 interface KoreanMoneyOptions {
   signed?: boolean;
-  minimumFractionDigits?: number;
-  maximumFractionDigits?: number;
 }
 
 /**
  * 금액을 한국식으로 표시
- * - 10,000 이상: 만원 단위
- * - 10,000 미만: 원 단위
+ * - 예: 10,000 -> 1만원
+ * - 예: 100,000,000 -> 1억원
+ * - 예: 123,412,421,341,234 -> 123조 4,124억 2,134만 1,234원
  */
 export function formatKoreanMoney(
   amount: number,
-  {
-    signed = false,
-    minimumFractionDigits = 0,
-    maximumFractionDigits = 1,
-  }: KoreanMoneyOptions = {}
+  { signed = false }: KoreanMoneyOptions = {}
 ): string {
-  const prefix = amount < 0 ? '-' : signed && amount > 0 ? '+' : '';
-  const absoluteAmount = Math.abs(amount);
-
-  if (absoluteAmount >= 10000) {
-    const manwon = absoluteAmount / 10000;
-    return `${prefix}${manwon.toLocaleString('ko-KR', {
-      minimumFractionDigits,
-      maximumFractionDigits,
-    })}만원`;
+  if (!Number.isFinite(amount)) {
+    return signed ? '+0원' : '0원';
   }
 
-  const won = Math.round(absoluteAmount);
-  return `${prefix}${won.toLocaleString('ko-KR')}원`;
+  const prefix = amount < 0 ? '-' : signed && amount > 0 ? '+' : '';
+  const absoluteAmount = Math.round(Math.abs(amount));
+
+  if (absoluteAmount < 10000) {
+    return `${prefix}${absoluteAmount.toLocaleString('ko-KR')}원`;
+  }
+
+  const units = [
+    { value: 1_0000_0000_0000, label: '조' },
+    { value: 1_0000_0000, label: '억' },
+    { value: 1_0000, label: '만' },
+  ] as const;
+
+  let remaining = absoluteAmount;
+  const parts: string[] = [];
+
+  units.forEach((unit) => {
+    const unitCount = Math.floor(remaining / unit.value);
+    if (unitCount <= 0) return;
+
+    parts.push(`${unitCount.toLocaleString('ko-KR')}${unit.label}`);
+    remaining -= unitCount * unit.value;
+  });
+
+  if (remaining > 0) {
+    parts.push(remaining.toLocaleString('ko-KR'));
+  }
+
+  return `${prefix}${parts.join(' ')}원`;
 }

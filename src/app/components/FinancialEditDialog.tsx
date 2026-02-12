@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { computeMonthlyBurn, computeRunway, formatKoreanMoney } from '../lib/finance';
+import {
+  COST_PER_EMPLOYEE,
+  computeMonthlyBurn,
+  computePersonnelCost,
+  computeRunway,
+  formatKoreanMoney,
+} from '../lib/finance';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +31,22 @@ interface FinancialEditDialogProps {
   onSave: (values: FinancialEditValues) => void;
 }
 
+const sanitizeDigits = (value: string) => value.replace(/[^\d]/g, '');
+
+const formatMoneyInput = (value: string) => {
+  const digits = sanitizeDigits(value);
+  if (!digits) return '';
+  return Number(digits).toLocaleString('ko-KR');
+};
+
+const parseMoneyInput = (value: string) => {
+  const digits = sanitizeDigits(value);
+  if (!digits) return 0;
+  const parsed = Number(digits);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, parsed);
+};
+
 export function FinancialEditDialog({
   open,
   onOpenChange,
@@ -39,31 +61,34 @@ export function FinancialEditDialog({
 
   useEffect(() => {
     if (!open) return;
-    setCash(String(initialValues.cash));
-    setMonthlyRevenue(String(initialValues.monthlyRevenue));
+    setCash(initialValues.cash.toLocaleString('ko-KR'));
+    setMonthlyRevenue(initialValues.monthlyRevenue.toLocaleString('ko-KR'));
     setEmployees(String(initialValues.employees));
-    setMarketingCost(String(initialValues.marketingCost));
-    setOfficeCost(String(initialValues.officeCost));
+    setMarketingCost(initialValues.marketingCost.toLocaleString('ko-KR'));
+    setOfficeCost(initialValues.officeCost.toLocaleString('ko-KR'));
   }, [open, initialValues]);
 
   const parsedValues = useMemo(() => {
-    const toNonNegative = (value: string) => {
+    const toNonNegativeInteger = (value: string) => {
       const num = Number(value);
       if (!Number.isFinite(num)) return 0;
       return Math.max(0, num);
     };
 
-    const nextEmployees = Math.round(toNonNegative(employees));
-    const nextMarketing = toNonNegative(marketingCost);
-    const nextOffice = toNonNegative(officeCost);
-    const nextCash = toNonNegative(cash);
+    const nextEmployees = Math.round(toNonNegativeInteger(employees));
+    const nextMarketing = parseMoneyInput(marketingCost);
+    const nextOffice = parseMoneyInput(officeCost);
+    const nextCash = parseMoneyInput(cash);
+    const nextPersonnelCost = computePersonnelCost(nextEmployees, {
+      unitCost: COST_PER_EMPLOYEE,
+    });
 
-    const nextBurn = computeMonthlyBurn(nextEmployees, nextMarketing, nextOffice);
+    const nextBurn = computeMonthlyBurn(nextPersonnelCost, nextMarketing, nextOffice);
     const nextRunway = computeRunway(nextCash, nextBurn);
 
     return {
       cash: nextCash,
-      monthlyRevenue: toNonNegative(monthlyRevenue),
+      monthlyRevenue: parseMoneyInput(monthlyRevenue),
       employees: nextEmployees,
       marketingCost: nextMarketing,
       officeCost: nextOffice,
@@ -90,7 +115,7 @@ export function FinancialEditDialog({
         <DialogHeader>
           <DialogTitle className="sg-heading">금고/비용 수정</DialogTitle>
           <DialogDescription className="text-xs text-slate-300">
-            숫자는 원 단위로 입력하세요. 표시는 자동으로 만원 단위로 변환됩니다.
+            금액은 원 단위로 입력하세요. 예: 10,000은 1만원, 100,000,000은 1억원 형식으로 표시됩니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -100,10 +125,10 @@ export function FinancialEditDialog({
               금고(현금)
               <Input
                 className="mt-1 border-amber-700/70 bg-[#1e315a] text-amber-100"
-                type="number"
-                min={0}
+                type="text"
+                inputMode="numeric"
                 value={cash}
-                onChange={(e) => setCash(e.target.value)}
+                onChange={(e) => setCash(formatMoneyInput(e.target.value))}
               />
             </label>
 
@@ -111,10 +136,10 @@ export function FinancialEditDialog({
               월 매출
               <Input
                 className="mt-1 border-amber-700/70 bg-[#1e315a] text-amber-100"
-                type="number"
-                min={0}
+                type="text"
+                inputMode="numeric"
                 value={monthlyRevenue}
-                onChange={(e) => setMonthlyRevenue(e.target.value)}
+                onChange={(e) => setMonthlyRevenue(formatMoneyInput(e.target.value))}
               />
             </label>
 
@@ -134,10 +159,10 @@ export function FinancialEditDialog({
               마케팅 비용
               <Input
                 className="mt-1 border-amber-700/70 bg-[#1e315a] text-amber-100"
-                type="number"
-                min={0}
+                type="text"
+                inputMode="numeric"
                 value={marketingCost}
-                onChange={(e) => setMarketingCost(e.target.value)}
+                onChange={(e) => setMarketingCost(formatMoneyInput(e.target.value))}
               />
             </label>
 
@@ -145,10 +170,10 @@ export function FinancialEditDialog({
               사무실 비용
               <Input
                 className="mt-1 border-amber-700/70 bg-[#1e315a] text-amber-100"
-                type="number"
-                min={0}
+                type="text"
+                inputMode="numeric"
                 value={officeCost}
-                onChange={(e) => setOfficeCost(e.target.value)}
+                onChange={(e) => setOfficeCost(formatMoneyInput(e.target.value))}
               />
             </label>
           </div>

@@ -4,8 +4,18 @@ import { ScenarioSelector } from './ScenarioSelector';
 import { StrategyPanel } from './StrategyPanel';
 import { SimulationResult } from './SimulationResult';
 import { CharacterChoiceScreen, type RepresentativeVariant } from './character/CharacterChoiceScreen';
-import { computeMonthlyBurn, computeRunway } from '../lib/finance';
+import {
+  COST_PER_EMPLOYEE,
+  computeMonthlyBurn,
+  computePersonnelCost,
+  computeRunway,
+} from '../lib/finance';
 import { FinancialEditDialog, type FinancialEditValues } from './FinancialEditDialog';
+import {
+  CostEditDialog,
+  type CostEditValues,
+  type EditableCostTarget,
+} from './CostEditDialog';
 import {
   ScenarioEditDialog,
   type EditableScenarioId,
@@ -24,6 +34,7 @@ export interface FinancialData {
   monthlyBurn: number;
   runway: number;
   employees: number;
+  personnelCost: number;
   marketingCost: number;
   officeCost: number;
   historicalData: { month: string; revenue: number; burn: number }[];
@@ -88,6 +99,7 @@ export function CastleDefense({
   const [selectedScenario, setSelectedScenario] = useState<ScenarioId>('maintain');
   const [scenarioCopy, setScenarioCopy] = useState<ScenarioCopyMap>(DEFAULT_SCENARIO_COPY);
   const [moneyDialogOpen, setMoneyDialogOpen] = useState(false);
+  const [costDialogTarget, setCostDialogTarget] = useState<EditableCostTarget | null>(null);
   const [scenarioDialogOpen, setScenarioDialogOpen] = useState(false);
   const [editingScenarioId, setEditingScenarioId] = useState<EditableScenarioId | null>(null);
 
@@ -129,13 +141,14 @@ export function CastleDefense({
   }, [initialRepresentativeVariant]);
   
   const [financialData, setFinancialData] = useState<FinancialData>({
-    cash: 150000,
-    monthlyRevenue: 45000,
-    monthlyBurn: 35000,
+    cash: 150000000,
+    monthlyRevenue: 45000000,
+    monthlyBurn: 34000000,
     runway: 4.3,
     employees: 8,
-    marketingCost: 8000,
-    officeCost: 2000,
+    personnelCost: 24000000,
+    marketingCost: 8000000,
+    officeCost: 2000000,
     historicalData: [],
   });
 
@@ -146,32 +159,67 @@ export function CastleDefense({
     priceIncrease: 10,
   });
 
-  const handleFinancialSave = (values: FinancialEditValues) => {
+  const applyFinancialPatch = (patch: Partial<FinancialEditValues>) => {
     setFinancialData((prev) => {
+      const nextValues: FinancialEditValues = {
+        cash: patch.cash ?? prev.cash,
+        monthlyRevenue: patch.monthlyRevenue ?? prev.monthlyRevenue,
+        employees: patch.employees ?? prev.employees,
+        marketingCost: patch.marketingCost ?? prev.marketingCost,
+        officeCost: patch.officeCost ?? prev.officeCost,
+      };
+      const nextPersonnelCost = computePersonnelCost(nextValues.employees, {
+        unitCost: COST_PER_EMPLOYEE,
+      });
+
       const monthlyBurn = computeMonthlyBurn(
-        values.employees,
-        values.marketingCost,
-        values.officeCost
+        nextPersonnelCost,
+        nextValues.marketingCost,
+        nextValues.officeCost
       );
-      const runway = computeRunway(values.cash, monthlyBurn);
+      const runway = computeRunway(nextValues.cash, monthlyBurn);
       const historyLastIndex = prev.historicalData.length - 1;
       const historicalData =
         historyLastIndex >= 0
           ? prev.historicalData.map((record, index) =>
               index === historyLastIndex
-                ? { ...record, revenue: values.monthlyRevenue, burn: monthlyBurn }
+                ? { ...record, revenue: nextValues.monthlyRevenue, burn: monthlyBurn }
                 : record
             )
           : prev.historicalData;
 
       return {
         ...prev,
-        ...values,
+        ...nextValues,
+        personnelCost: nextPersonnelCost,
         monthlyBurn,
         runway,
         historicalData,
       };
     });
+  };
+
+  const handleFinancialSave = (values: FinancialEditValues) => {
+    applyFinancialPatch(values);
+  };
+
+  const handleQuickCostSave = (values: CostEditValues) => {
+    if (!costDialogTarget) return;
+
+    if (costDialogTarget === 'personnel') {
+      const nextEmployees = Math.max(0, Math.round(values.employees ?? 0));
+      applyFinancialPatch({
+        employees: nextEmployees,
+      });
+      return;
+    }
+
+    if (costDialogTarget === 'marketing') {
+      applyFinancialPatch({ marketingCost: values.amount });
+      return;
+    }
+
+    applyFinancialPatch({ officeCost: values.amount });
   };
 
   const handleOpenScenarioEditor = (scenarioId: EditableScenarioId) => {
@@ -201,6 +249,7 @@ export function CastleDefense({
           representativeVariant={representativeVariant}
           onRepresentativeVariantChange={applyRepresentativeVariant}
           onEditMoney={() => setMoneyDialogOpen(true)}
+          onEditCost={(target) => setCostDialogTarget(target)}
           userDisplayName={userDisplayName}
           companyName={companyName}
         />
@@ -211,6 +260,7 @@ export function CastleDefense({
           selectedScenario={selectedScenario}
           onSelectScenario={setSelectedScenario}
           scenarioCopy={scenarioCopy}
+          financialData={financialData}
           onEditScenario={handleOpenScenarioEditor}
           onNext={() => setGameMode('strategy')}
           onSimulate={() => setGameMode('result')}
@@ -223,6 +273,7 @@ export function CastleDefense({
           settings={strategySettings}
           onSettingsChange={setStrategySettings}
           data={financialData}
+          scenario={selectedScenario}
           onSimulate={() => setGameMode('result')}
           onBack={() => setGameMode('scenario')}
         />
@@ -250,6 +301,23 @@ export function CastleDefense({
           officeCost: financialData.officeCost,
         }}
         onSave={handleFinancialSave}
+      />
+
+      <CostEditDialog
+        open={costDialogTarget !== null}
+        target={costDialogTarget}
+        initialAmount={
+          costDialogTarget === 'personnel'
+            ? financialData.personnelCost
+            : costDialogTarget === 'office'
+              ? financialData.officeCost
+              : financialData.marketingCost
+        }
+        initialEmployees={financialData.employees}
+        onOpenChange={(open) => {
+          if (!open) setCostDialogTarget(null);
+        }}
+        onSave={handleQuickCostSave}
       />
 
       <ScenarioEditDialog
