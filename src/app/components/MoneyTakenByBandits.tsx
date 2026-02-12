@@ -76,7 +76,7 @@ export function MoneyTakenByBandits({
       {/* "월 지출 → 도적군" 라벨 (선택) */}
       {monthlyBurn > 0 && (
         <motion.div
-          className="absolute left-1/2 top-[72%] -translate-x-1/2 rounded-lg bg-slate-800/90 px-3 py-1.5 text-xs font-bold text-amber-300"
+          className="absolute left-1/2 top-[72%] -translate-x-1/2 rounded-md border border-amber-700/70 bg-[#16233e]/90 px-3 py-1.5 text-xs font-bold text-amber-200 shadow-[inset_0_0_0_1px_rgba(255,223,138,0.2)]"
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}

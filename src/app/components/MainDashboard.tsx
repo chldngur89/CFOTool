@@ -32,24 +32,24 @@ export function MainDashboard({
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   return (
-    <div className="max-w-6xl mx-auto px-5">
+    <div className="mx-auto max-w-6xl space-y-6 px-4 md:px-5">
       {/* 헤더 */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="bg-white border border-slate-200 rounded-2xl p-6 mb-8 shadow-sm"
+        className="sg-panel-dark p-5 md:p-6"
       >
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <span className="text-4xl">🏰</span>
+            <span className="text-4xl drop-shadow-[0_2px_0_rgba(0,0,0,0.65)]">🏯</span>
             <div>
-              <h1 className="text-2xl font-bold text-navy-custom tracking-tight">대표의 성 방어전</h1>
-              <p className="text-slate-500 text-sm mt-1">재무 전략 시뮬레이터 v1.0</p>
+              <h1 className="sg-heading">대표의 성 방어전</h1>
+              <p className="sg-subtitle mt-1">삼국지 전장 감성 재무 시뮬레이터</p>
             </div>
           </div>
-          <div className="bg-slate-50 px-6 py-3 rounded-xl border border-slate-200">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">금고</div>
-            <div className="text-2xl font-bold text-primary">${(data.cash / 1000).toFixed(0)}K</div>
+          <div className="sg-card-dark px-5 py-3 text-center">
+            <div className="sg-label text-amber-200">금고</div>
+            <div className="mt-1 text-2xl font-black text-amber-200">${(data.cash / 1000).toFixed(0)}K</div>
           </div>
         </div>
       </motion.div>
@@ -59,20 +59,20 @@ export function MainDashboard({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="bg-navy-custom text-white rounded-[2rem] p-8 mb-8 relative overflow-hidden shadow-xl"
+        className="sg-panel-dark sg-panel-animated relative overflow-hidden p-6 md:p-8"
       >
         {/* 월 지출 = 도적군이 금고에서 돈 가져가는 모션 */}
         <MoneyTakenByBandits monthlyBurn={monthlyBurn} runOnce={false} />
 
-        <div className="flex justify-between items-start mb-6 relative z-10">
+        <div className="relative z-10 mb-6 flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold leading-tight">재무 현황</h2>
-            <p className="text-slate-400 text-xs font-medium mt-1">Runway & Burn Rate</p>
+            <h2 className="sg-heading">재무 전장 현황</h2>
+            <p className="sg-subtitle mt-1">Runway & Burn Rate</p>
           </div>
           <div className="flex flex-col items-center">
-            <div className="text-3xl font-bold text-primary">{data.runway.toFixed(1)}</div>
-            <div className="text-[8px] uppercase font-bold tracking-tighter text-slate-400">Runway (월)</div>
-            <div className={`text-[10px] font-bold mt-1 ${runwayStatus === 'danger' ? 'text-red-400' : runwayStatus === 'warning' ? 'text-amber-400' : 'text-green-400'}`}>
+            <div className="text-3xl font-black text-amber-200">{data.runway.toFixed(1)}</div>
+            <div className="sg-label text-[9px] text-slate-300">Runway (월)</div>
+            <div className={`sg-label mt-1 text-[10px] ${runwayStatus === 'danger' ? 'text-red-300' : runwayStatus === 'warning' ? 'text-amber-300' : 'text-emerald-300'}`}>
               {runwayStatus === 'danger' ? '위험' : runwayStatus === 'warning' ? '주의' : '안전'}
             </div>
           </div>
@@ -97,26 +97,26 @@ export function MainDashboard({
                 whileTap={{ scale: 0.98 }}
               >
                 <RepresentativeCharacter variant={representativeVariant} size={88} />
-                <div className="bg-slate-800/80 text-primary px-2 py-1 text-xs font-bold text-center rounded-lg border border-slate-600 mt-2 flex items-center justify-center gap-1">
+                <div className="mt-2 flex items-center justify-center gap-1 rounded-md border border-amber-600/70 bg-[#1d2e54]/90 px-2 py-1 text-xs font-bold text-amber-100">
                   대표 CEO
-                  <span className="text-[10px] text-slate-400">(클릭하여 변경)</span>
+                  <span className="text-[10px] text-slate-300">(클릭하여 변경)</span>
                 </div>
               </motion.div>
             </PopoverTrigger>
-            <PopoverContent className="w-56 bg-navy-custom border-slate-600 text-white p-3" align="center" side="top">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">스타일 변경</div>
+            <PopoverContent className="w-56 border-amber-600/60 bg-[#182642] p-3 text-white" align="center" side="top">
+              <div className="sg-label mb-3 text-amber-200">스타일 변경</div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => { onRepresentativeVariantChange('strategist'); setPopoverOpen(false); }}
-                  className={`flex-1 rounded-xl py-2 px-3 text-sm font-bold transition-colors ${representativeVariant === 'strategist' ? 'bg-primary text-white' : 'bg-slate-700/80 text-slate-300 hover:bg-slate-600'}`}
+                  className={`rounded-md border px-3 py-2 text-xs font-bold transition-colors ${representativeVariant === 'strategist' ? 'border-amber-400 bg-amber-500 text-[#2d1f00]' : 'border-slate-500 bg-slate-700/80 text-slate-200 hover:bg-slate-600'}`}
                 >
                   책사
                 </button>
                 <button
                   type="button"
                   onClick={() => { onRepresentativeVariantChange('general'); setPopoverOpen(false); }}
-                  className={`flex-1 rounded-xl py-2 px-3 text-sm font-bold transition-colors ${representativeVariant === 'general' ? 'bg-primary text-white' : 'bg-slate-700/80 text-slate-300 hover:bg-slate-600'}`}
+                  className={`rounded-md border px-3 py-2 text-xs font-bold transition-colors ${representativeVariant === 'general' ? 'border-amber-400 bg-amber-500 text-[#2d1f00]' : 'border-slate-500 bg-slate-700/80 text-slate-200 hover:bg-slate-600'}`}
                 >
                   장군
                 </button>
@@ -128,7 +128,7 @@ export function MainDashboard({
         {/* 몬스터 웨이브 (월 비용 = 도적군이 가져가는 금액) */}
         <div className="relative z-10">
           <div className="text-center mb-4">
-            <div className="inline-block bg-slate-800/80 text-slate-200 px-4 py-2 rounded-xl border border-slate-600 font-bold text-sm">
+            <div className="inline-block rounded-md border border-amber-600/70 bg-[#1b2a4a]/90 px-4 py-2 text-sm font-bold text-amber-100 shadow-[inset_0_0_0_1px_rgba(255,226,143,0.24)]">
               ⚔️ 도적군이 가져가는 월 비용
             </div>
           </div>
@@ -155,7 +155,7 @@ export function MainDashboard({
 
         {/* 매출 금화 */}
         <motion.div
-          className="absolute top-8 right-8"
+          className="absolute right-6 top-6"
           animate={{ rotate: [0, 10, 0, -10, 0] }}
           transition={{ duration: 3, repeat: Infinity }}
         >
@@ -168,19 +168,19 @@ export function MainDashboard({
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="bg-white border border-slate-200 rounded-2xl p-6 mb-8 shadow-sm"
+        className="sg-panel p-5 md:p-6"
       >
-        <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+        <h3 className="sg-label mb-4 text-amber-900">
           최근 6개월 전투 기록
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           {data.historicalData.map((record, i) => (
-            <div key={i} className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-              <div className="text-slate-400 text-xs mb-2">{record.month}</div>
+            <div key={i} className="sg-card p-3 text-center">
+              <div className="text-[11px] font-bold text-amber-800 mb-2">{record.month}</div>
               <div className="text-lg font-bold">
                 {record.revenue > record.burn ? '💰' : record.revenue === record.burn ? '⚖️' : '📉'}
               </div>
-              <div className="text-xs text-slate-500 mt-1">
+              <div className="mt-1 text-xs text-amber-900/80">
                 {record.revenue > record.burn ? '승리' : record.revenue === record.burn ? '균형' : '고전'}
               </div>
             </div>
@@ -195,9 +195,9 @@ export function MainDashboard({
             const height = Math.abs(profit) / maxProfit * 100;
             return (
               <div key={i} className="flex flex-col items-center gap-1">
-                <div className="text-xs text-slate-400">${(profit / 1000).toFixed(0)}K</div>
+                <div className="text-[10px] font-bold text-amber-900/70">${(profit / 1000).toFixed(0)}K</div>
                 <div
-                  className={`w-8 rounded-lg ${profit >= 0 ? 'bg-green-500' : 'bg-red-500'} border border-slate-200`}
+                  className={`w-8 rounded-sm ${profit >= 0 ? 'bg-emerald-500' : 'bg-red-500'} border border-amber-900/30`}
                   style={{ height: `${Math.max(height, 10)}%` }}
                 />
               </div>
@@ -213,11 +213,13 @@ export function MainDashboard({
         transition={{ delay: 0.6 }}
         className="text-center"
       >
-        <PixelButton onClick={onStartScenario} variant="primary" size="large">
-          ⚔️ 다음 웨이브 대비 전략 수립
-        </PixelButton>
+        <div className="sg-command-row">
+          <PixelButton onClick={onStartScenario} variant="primary" size="large">
+            ⚔️ 다음 웨이브 대비 전략 수립
+          </PixelButton>
+        </div>
 
-        <div className="mt-4 text-slate-500 text-sm">
+        <div className="mt-4 text-sm text-amber-100/85">
           💡 현재 상태: 월 소득 ${(data.monthlyRevenue / 1000).toFixed(0)}K | 월 지출 ${(data.monthlyBurn / 1000).toFixed(0)}K | 순이익 ${((data.monthlyRevenue - data.monthlyBurn) / 1000).toFixed(0)}K
         </div>
       </motion.div>

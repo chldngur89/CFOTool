@@ -88,7 +88,7 @@ export function CastleDefense() {
   });
 
   return (
-    <div className="w-full min-h-screen p-4 md:p-8">
+    <div className="w-full min-h-screen px-1 py-3 md:px-2 md:py-5">
       {gameMode === 'dashboard' && showCharacterChoice && (
         <CharacterChoiceScreen onSelect={handleCharacterSelect} />
       )}
@@ -125,6 +125,7 @@ export function CastleDefense() {
           settings={strategySettings}
           scenario={selectedScenario}
           initialData={financialData}
+          representativeVariant={representativeVariant}
           onRestart={() => setGameMode('dashboard')}
           onAdjust={() => setGameMode('strategy')}
         />

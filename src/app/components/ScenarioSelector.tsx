@@ -22,8 +22,6 @@ export function ScenarioSelector({
       description: '비용 -30% 절감',
       effect: '런웨이 +5개월',
       detail: '도적군 속도 느려짐',
-      borderColor: 'border-primary',
-      bgActive: 'bg-primary/5 border-primary',
     },
     {
       id: 'maintain' as const,
@@ -32,8 +30,6 @@ export function ScenarioSelector({
       description: '현행 코스 유지',
       effect: '런웨이 4.3개월',
       detail: '보통 속도 유지',
-      borderColor: 'border-slate-200',
-      bgActive: 'bg-slate-50 border-primary',
     },
     {
       id: 'attack' as const,
@@ -42,26 +38,20 @@ export function ScenarioSelector({
       description: '마케팅 +50% 투자',
       effect: '런웨이 -1.2개월',
       detail: '금화 폭증, 도적군 증가',
-      borderColor: 'border-slate-200',
-      bgActive: 'bg-primary/5 border-primary',
     },
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-5">
+    <div className="mx-auto max-w-6xl px-4 md:px-5">
       {/* 헤더 */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="text-center mb-8"
+        className="mx-auto mb-8 max-w-3xl text-center"
       >
-        <div className="inline-block">
-          <h2 className="text-2xl font-bold text-navy-custom tracking-tight mb-2">
-            다음 웨이브 대비 전략 선택
-          </h2>
-          <p className="text-slate-500 text-sm">
-            어떤 전략으로 도적군의 공격을 막아낼 것인가?
-          </p>
+        <div className="sg-panel-dark p-5">
+          <h2 className="sg-heading">다음 웨이브 대비 전략 선택</h2>
+          <p className="sg-subtitle mt-2">어떤 전략으로 도적군의 공격을 막아낼 것인가?</p>
         </div>
       </motion.div>
 
@@ -76,16 +66,16 @@ export function ScenarioSelector({
             whileHover={{ scale: 1.02 }}
             onClick={() => onSelectScenario(scenario.id)}
             className={`
-              bg-white rounded-2xl p-6 cursor-pointer relative
-              border-2 transition-all duration-200 shadow-sm
-              ${selectedScenario === scenario.id ? scenario.bgActive : `border-slate-200 hover:border-primary/30`}
+              sg-card-dark p-6 cursor-pointer relative
+              border-2 transition-all duration-200
+              ${selectedScenario === scenario.id ? 'border-amber-400 bg-[#253969]' : `border-amber-900/70 hover:border-amber-500/70`}
             `}
           >
             {selectedScenario === scenario.id && (
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-2 -right-2 bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-md"
+                className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full border border-amber-800 bg-amber-400 text-sm font-black text-[#2d2000] shadow-md"
               >
                 ✓
               </motion.div>
@@ -99,18 +89,18 @@ export function ScenarioSelector({
               {scenario.icon}
             </motion.div>
 
-            <h3 className="text-xl font-bold text-navy-custom text-center mb-3">
+            <h3 className="text-center text-lg font-black text-amber-100 mb-3">
               {scenario.title}
             </h3>
 
             <div className="space-y-2 text-center">
-              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                <div className="text-primary text-sm font-bold">{scenario.description}</div>
+              <div className="rounded-md border border-amber-700/50 bg-[#1f3058] p-2 shadow-[inset_0_0_0_1px_rgba(255,221,139,0.16)]">
+                <div className="text-sm font-bold text-amber-100">{scenario.description}</div>
               </div>
-              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                <div className="text-green-600 font-bold text-sm">{scenario.effect}</div>
+              <div className="rounded-md border border-amber-700/40 bg-[#1f3058] p-2 shadow-[inset_0_0_0_1px_rgba(255,221,139,0.14)]">
+                <div className="text-sm font-bold text-emerald-300">{scenario.effect}</div>
               </div>
-              <div className="text-slate-500 text-sm">
+              <div className="text-sm text-slate-200/85">
                 {scenario.detail}
               </div>
             </div>
@@ -146,7 +136,7 @@ export function ScenarioSelector({
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="flex justify-center gap-4"
+        className="sg-command-row"
       >
         <PixelButton onClick={onBack} variant="secondary">
           ← 돌아가기

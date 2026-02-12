@@ -13,11 +13,11 @@ export function PixelMonster({ type, cost, label, count }: PixelMonsterProps) {
   const getMonsterColor = () => {
     switch (type) {
       case 'personnel':
-        return 'from-slate-700 to-slate-800 border-slate-600';
+        return 'from-[#2f3f66] to-[#1f2d4b] border-amber-800/50';
       case 'marketing':
-        return 'from-slate-700 to-slate-800 border-slate-600';
+        return 'from-[#2f3f66] to-[#1f2d4b] border-amber-800/50';
       case 'office':
-        return 'from-slate-700 to-slate-800 border-slate-600';
+        return 'from-[#2f3f66] to-[#1f2d4b] border-amber-800/50';
     }
   };
 
@@ -30,7 +30,7 @@ export function PixelMonster({ type, cost, label, count }: PixelMonsterProps) {
       className={`bg-gradient-to-b ${getMonsterColor()} border-2 rounded-2xl p-4 relative shadow-sm`}
     >
       {/* 도적군 헤더 - 전투 느낌 */}
-      <div className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-3 py-1 text-[10px] font-bold rounded-lg whitespace-nowrap shadow-sm">
+      <div className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 rounded-md border border-red-900 bg-red-700 px-3 py-1 text-[10px] font-black text-red-100 whitespace-nowrap shadow-sm">
         도적 부대
       </div>
 
@@ -50,12 +50,12 @@ export function PixelMonster({ type, cost, label, count }: PixelMonsterProps) {
       
       {/* 정보 */}
       <div className="text-center">
-        <div className="text-slate-200 font-bold text-sm mb-2">{label}</div>
-        <div className="text-xl font-bold text-primary">
+        <div className="mb-2 text-sm font-bold text-amber-100">{label}</div>
+        <div className="text-xl font-black text-amber-300">
           ${(cost / 1000).toFixed(1)}K
         </div>
         {count && (
-          <div className="text-xs text-slate-400 mt-1">
+          <div className="mt-1 text-xs text-slate-300">
             병력: {count}명
           </div>
         )}

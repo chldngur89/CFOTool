@@ -19,37 +19,38 @@ export function PixelButton({
   const getVariantClasses = () => {
     switch (variant) {
       case 'primary':
-        return 'bg-primary text-white hover:bg-primary/90 shadow-sm';
+        return 'sg-btn-primary';
       case 'secondary':
-        return 'bg-white border border-slate-200 text-navy-custom hover:bg-slate-50 shadow-sm';
+        return 'sg-btn-secondary';
       case 'danger':
-        return 'bg-red-500 text-white hover:bg-red-600 shadow-sm';
+        return 'sg-btn-danger';
       case 'success':
-        return 'bg-green-600 text-white hover:bg-green-700 shadow-sm';
+        return 'sg-btn-success';
     }
   };
 
   const getSizeClasses = () => {
     switch (size) {
       case 'small':
-        return 'px-3 py-1.5 text-[10px]';
+        return 'px-3 py-2 text-[10px]';
       case 'medium':
-        return 'px-4 py-2.5 text-sm';
+        return 'px-4 py-2.5 text-[11px]';
       case 'large':
-        return 'px-6 py-3 text-base';
+        return 'px-6 py-3.5 text-xs';
     }
   };
 
   return (
     <motion.button
-      whileHover={!disabled ? { scale: 1.02 } : {}}
-      whileTap={!disabled ? { scale: 0.98 } : {}}
+      whileHover={!disabled ? { scale: 1.03 } : {}}
+      whileTap={!disabled ? { scale: 0.97 } : {}}
       onClick={onClick}
       disabled={disabled}
       className={`
+        sg-btn
         ${getVariantClasses()}
         ${getSizeClasses()}
-        font-bold rounded-xl transition-all duration-150
+        font-bold
         disabled:opacity-50 disabled:cursor-not-allowed
       `}
     >
