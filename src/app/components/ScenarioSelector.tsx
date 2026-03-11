@@ -27,6 +27,17 @@ interface ScenarioAiBrief {
   recommendation: string;
 }
 
+interface ScenarioCardItem {
+  id: ScenarioId;
+  crest: string;
+  accent: string;
+  bars: number[];
+  title: string;
+  description: string;
+  effect: string;
+  detail: string;
+}
+
 function buildScenarioAiBrief(
   selectedScenario: ScenarioId,
   data: FinancialData
@@ -61,8 +72,8 @@ function buildScenarioAiBrief(
       ],
       recommendation:
         data.runway < 6
-          ? 'AI 판단: 지금은 안건 1이 가장 안전합니다. 이렇게 가겠습니다.'
-          : 'AI 판단: 안건 2로 방어와 성장 균형을 맞추는 편이 좋겠습니다. 이렇게 가겠습니다.',
+          ? '군사 판단: 지금은 안건 1로 전열을 다지는 편이 가장 안전합니다. 이 진형으로 가겠습니다.'
+          : '군사 판단: 안건 2로 방어와 성장의 균형을 맞추는 편이 좋겠습니다. 이 진형으로 가겠습니다.',
     };
   }
 
@@ -88,8 +99,8 @@ function buildScenarioAiBrief(
       ],
       recommendation:
         marketingShare < 20
-          ? 'AI 판단: 현재는 안건 1이 공격 선택과 가장 잘 맞습니다. 이렇게 가겠습니다.'
-          : 'AI 판단: 마케팅 비중이 이미 높아 안건 2가 더 안정적인 공격안입니다. 이렇게 가겠습니다.',
+          ? '군사 판단: 현재는 안건 1이 공세 선택과 가장 잘 맞습니다. 이 진형으로 가겠습니다.'
+          : '군사 판단: 마케팅 비중이 이미 높아 안건 2가 더 안정적인 공세안입니다. 이 진형으로 가겠습니다.',
     };
   }
 
@@ -114,8 +125,8 @@ function buildScenarioAiBrief(
     ],
     recommendation:
       profit >= 0
-        ? 'AI 판단: 현재는 안건 1이 가장 합리적입니다. 이렇게 가겠습니다.'
-        : 'AI 판단: 적자 구간이라 안건 2로 미세 조정부터 시작하는 편이 좋겠습니다. 이렇게 가겠습니다.',
+        ? '군사 판단: 현재는 안건 1이 가장 합리적입니다. 이 진형으로 가겠습니다.'
+        : '군사 판단: 적자 구간이라 안건 2로 미세 조정부터 시작하는 편이 좋겠습니다. 이 진형으로 가겠습니다.',
   };
 }
 
@@ -129,20 +140,26 @@ export function ScenarioSelector({
   onSimulate,
   onBack
 }: ScenarioSelectorProps) {
-  const scenarios = [
+  const scenarios: ScenarioCardItem[] = [
     {
       id: 'defense' as const,
-      icon: '🛡️',
+      crest: '수성',
+      accent: '전열 정비',
+      bars: [18, 28, 18],
       ...scenarioCopy.defense,
     },
     {
       id: 'maintain' as const,
-      icon: '⚔️',
+      crest: '균형',
+      accent: '전력 유지',
+      bars: [22, 22, 22],
       ...scenarioCopy.maintain,
     },
     {
       id: 'attack' as const,
-      icon: '⚡',
+      crest: '공세',
+      accent: '돌파 준비',
+      bars: [16, 26, 34],
       ...scenarioCopy.attack,
     },
   ];
@@ -200,13 +217,18 @@ export function ScenarioSelector({
               </motion.div>
             )}
 
-            <motion.div
-              animate={selectedScenario === scenario.id ? { rotate: [0, -5, 5, 0] } : {}}
-              transition={{ duration: 0.5 }}
-              className="text-6xl text-center mb-4"
-            >
-              {scenario.icon}
-            </motion.div>
+            <div className="mb-4 flex flex-col items-center gap-3 text-center">
+              <motion.div
+                animate={selectedScenario === scenario.id ? { scale: [1, 1.04, 1] } : {}}
+                transition={{ duration: 0.5 }}
+                className="rounded-full border border-amber-500/70 bg-[#152643] px-4 py-1 text-[11px] font-black tracking-[0.24em] text-amber-200"
+              >
+                {scenario.crest}
+              </motion.div>
+              <div className="text-[10px] font-bold tracking-[0.18em] text-slate-300">
+                {scenario.accent}
+              </div>
+            </div>
 
             <h3 className="text-center text-lg font-black text-amber-100 mb-3">
               {scenario.title}
@@ -229,28 +251,16 @@ export function ScenarioSelector({
               )}
             </div>
 
-            <div className="flex justify-center mt-4 gap-2">
-              {scenario.id === 'defense' && (
-                <>
-                  <motion.span animate={{ x: [0, 5, 0] }} transition={{ duration: 2, repeat: Infinity }}>👥</motion.span>
-                  <motion.span animate={{ x: [0, 5, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}>👥</motion.span>
-                </>
-              )}
-              {scenario.id === 'maintain' && (
-                <>
-                  <motion.span animate={{ x: [0, 10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>👥</motion.span>
-                  <motion.span animate={{ x: [0, 10, 0] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}>👥</motion.span>
-                  <motion.span animate={{ x: [0, 10, 0] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}>👥</motion.span>
-                </>
-              )}
-              {scenario.id === 'attack' && (
-                <>
-                  <motion.span animate={{ x: [0, 15, 0] }} transition={{ duration: 1, repeat: Infinity }}>💰</motion.span>
-                  <motion.span animate={{ x: [0, 15, 0] }} transition={{ duration: 1, repeat: Infinity, delay: 0.1 }}>💰</motion.span>
-                  <motion.span animate={{ x: [0, 15, 0] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}>💰</motion.span>
-                  <motion.span animate={{ x: [0, 15, 0] }} transition={{ duration: 1, repeat: Infinity, delay: 0.3 }}>💰</motion.span>
-                </>
-              )}
+            <div className="mt-4 flex justify-center gap-1.5">
+              {scenario.bars.map((width, barIndex) => (
+                <motion.div
+                  key={`${scenario.id}-${barIndex}`}
+                  animate={{ opacity: [0.45, 0.95, 0.45], y: [0, -2, 0] }}
+                  transition={{ duration: 1.8, repeat: Infinity, delay: barIndex * 0.18 }}
+                  className={`h-1.5 rounded-full ${selectedScenario === scenario.id ? 'bg-amber-300' : 'bg-slate-400/70'}`}
+                  style={{ width }}
+                />
+              ))}
             </div>
           </motion.div>
         ))}
@@ -262,7 +272,7 @@ export function ScenarioSelector({
         transition={{ delay: 0.25 }}
         className="sg-panel-dark mb-8 p-5"
       >
-        <div className="mb-2 text-sm font-black text-amber-100">🤖 AI 시나리오 회의록 (3안)</div>
+        <div className="mb-2 text-sm font-black text-amber-100">군사 회의록 (3안)</div>
         <p className="text-xs text-slate-300">{aiBrief.summary}</p>
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
           {aiBrief.options.map((option) => (
@@ -291,7 +301,7 @@ export function ScenarioSelector({
           전략 세부 조정 →
         </PixelButton>
         <PixelButton onClick={onSimulate} variant="primary" size="large">
-          ⚔️ 바로 시뮬레이션
+          바로 시뮬레이션
         </PixelButton>
       </motion.div>
     </div>

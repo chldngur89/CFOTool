@@ -55,7 +55,7 @@ export function MoneyTakenByBandits({
           Array.from({ length: COIN_COUNT }).map((_, i) => (
             <motion.div
               key={`${key}-${i}`}
-              className="absolute text-2xl opacity-90 drop-shadow-md"
+              className="absolute opacity-90 drop-shadow-md"
               style={{
                 top: `${38 + (i % 3) * 14}%`,
               }}
@@ -70,7 +70,9 @@ export function MoneyTakenByBandits({
                 opacity: { times: [0, 0.08, 0.88, 1], duration: DURATION },
               }}
             >
-              💰
+              <div className="relative h-4 w-4 rounded-sm border border-amber-200/90 bg-gradient-to-br from-amber-200 to-amber-500 shadow-[0_0_8px_rgba(251,191,36,0.4)]">
+                <div className="absolute inset-1 rounded-[2px] bg-amber-100/70" />
+              </div>
             </motion.div>
           ))}
       </div>

@@ -52,25 +52,33 @@ export function SimulationResult({
   const breakEvenMonth = results.findIndex(r => r.profit > 0);
   const cashoutMonth = results.findIndex(r => r.cash <= 0);
   const peakCashMonth = results.reduce((max, r, i) => r.cash > results[max].cash ? i : max, 0);
+  const maxChartMagnitude = Math.max(
+    ...results.map((result) => Math.abs(result.profit)),
+    1
+  );
 
-  const getAIRecommendations = () => {
+  const getStrategicNotes = () => {
     const recommendations = [];
-    if (settings.marketingIncrease > 30) recommendations.push({ icon: '📢', text: '마케팅 ROI를 주간 단위로 모니터링하세요' });
-    if (settings.headcountChange > 0) recommendations.push({ icon: '👥', text: `${Math.ceil(settings.headcountChange / 2)}월차에 첫 채용 시작` });
-    if (settings.priceIncrease > 0) recommendations.push({ icon: '💸', text: `${settings.priceIncrease}% 가격 인상을 A/B 테스트로 검증` });
-    if (finalResult.runway < 6) recommendations.push({ icon: '⚠️', text: '비상 자금 확보 또는 비용 재조정 필요' });
-    else if (finalResult.runway > 18) recommendations.push({ icon: '🚀', text: '공격적 마케팅/채용 기회 검토' });
+    if (settings.marketingIncrease > 30) recommendations.push({ tag: '홍보', text: '마케팅 효율을 주간 단위로 점검해 허실을 가르세요.' });
+    if (settings.headcountChange > 0) recommendations.push({ tag: '병력', text: `${Math.ceil(settings.headcountChange / 2)}개월차부터 순차 채용을 시작하는 편이 안전합니다.` });
+    if (settings.priceIncrease > 0) recommendations.push({ tag: '단가', text: `${settings.priceIncrease}% 가격 조정은 소규모 실험부터 검증하는 편이 좋습니다.` });
+    if (finalResult.runway < 6) recommendations.push({ tag: '경계', text: '예비 자금을 확보하거나 비용 구조를 다시 정비할 필요가 있습니다.' });
+    else if (finalResult.runway > 18) recommendations.push({ tag: '확장', text: '공세를 한 단계 올릴 여력이 있어 성장 실험을 검토할 수 있습니다.' });
     return recommendations.slice(0, 3);
   };
 
-  const recommendations = getAIRecommendations();
+  const recommendations = getStrategicNotes();
 
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-5">
       <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="mb-8 text-center">
         <div className={`inline-block rounded-xl p-6 border-2 ${isSuccess ? 'border-emerald-400 bg-emerald-100' : 'border-amber-300 bg-amber-100'}`}>
-          <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 0.5 }} className="text-5xl mb-3">
-            {isSuccess ? '🎉' : '⚔️'}
+          <motion.div
+            animate={{ scale: [1, 1.06, 1] }}
+            transition={{ duration: 0.5 }}
+            className={`mx-auto mb-3 inline-flex rounded-full border px-4 py-2 text-sm font-black tracking-[0.22em] ${isSuccess ? 'border-emerald-500 bg-emerald-200 text-emerald-800' : 'border-amber-500 bg-amber-200 text-amber-800'}`}
+          >
+            {isSuccess ? '승전' : '결과'}
           </motion.div>
           <h2 className="sg-heading !text-amber-900 mb-2">
             {isSuccess ? '승리의 전략!' : '시뮬레이션 완료'}
@@ -103,8 +111,26 @@ export function SimulationResult({
                 className="relative flex items-center justify-between rounded-md border border-amber-900/20 bg-amber-50 p-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className="text-2xl">
-                    {result.profit > 5000 ? '🏰💰💰💰' : result.profit > 0 ? '🏰💰💰' : result.profit > -5000 ? '🏰💰' : result.cash > 0 ? '🏰' : '💀'}
+                  <div className={`rounded-full border px-3 py-1 text-[10px] font-black tracking-[0.16em] ${
+                    result.cash <= 0
+                      ? 'border-red-300 bg-red-100 text-red-700'
+                      : result.profit > result.burn * 0.15
+                        ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                        : result.profit > 0
+                          ? 'border-sky-300 bg-sky-100 text-sky-700'
+                          : result.profit > result.burn * -0.1
+                            ? 'border-amber-300 bg-amber-100 text-amber-700'
+                            : 'border-rose-300 bg-rose-100 text-rose-700'
+                  }`}>
+                    {result.cash <= 0
+                      ? '붕괴'
+                      : result.profit > result.burn * 0.15
+                        ? '우세'
+                        : result.profit > 0
+                          ? '반등'
+                          : result.profit > result.burn * -0.1
+                            ? '교착'
+                            : '후퇴'}
                   </div>
                   <div>
                     <div className="text-sm font-bold text-amber-900">{result.month}개월차</div>
@@ -128,7 +154,8 @@ export function SimulationResult({
           </div>
           <div className="mt-6 h-32 flex items-end gap-1">
             {results.map((result, i) => {
-              const height = Math.max((result.profit / 50000) * 100 + 50, 5);
+              const normalizedHeight = (Math.abs(result.profit) / maxChartMagnitude) * 100;
+              const height = Math.min(Math.max(normalizedHeight, 6), 100);
               return (
                 <motion.div
                   key={i}
@@ -145,7 +172,7 @@ export function SimulationResult({
 
         <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="space-y-6">
           <div className="sg-panel-dark p-6">
-            <h3 className="sg-heading mb-4 flex items-center gap-2"><span>📈</span> 핵심 지표</h3>
+            <h3 className="sg-heading mb-4">핵심 지표</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="sg-card-dark p-4 text-center">
                 <div className="text-slate-400 text-xs mb-1">최종 금고</div>
@@ -168,7 +195,7 @@ export function SimulationResult({
           </div>
 
           <div className="sg-panel p-6">
-            <h3 className="sg-label mb-4 text-amber-900">AI 전술가의 조언</h3>
+            <h3 className="sg-label mb-4 text-amber-900">참모 메모</h3>
             <div className="mb-4 rounded-md border border-amber-900/20 bg-amber-50 p-4">
               <p className="text-sm leading-relaxed text-amber-900/85">
                 {isSuccess
@@ -188,7 +215,9 @@ export function SimulationResult({
                   transition={{ delay: 0.6 + i * 0.1 }}
                   className="flex items-start gap-3 rounded-md border border-amber-900/20 bg-amber-50 p-3"
                 >
-                  <span className="text-2xl">{rec.icon}</span>
+                  <span className="rounded-full border border-amber-500/60 bg-amber-100 px-2 py-1 text-[10px] font-black tracking-[0.16em] text-amber-900">
+                    {rec.tag}
+                  </span>
                   <span className="flex-1 text-sm text-amber-900/85">{rec.text}</span>
                 </motion.div>
               ))}
@@ -196,7 +225,9 @@ export function SimulationResult({
           </div>
 
           <div className={`rounded-xl p-6 border-2 text-center ${isSuccess ? 'bg-green-50 border-green-200' : finalResult.cash > 0 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
-            <div className="text-4xl mb-3">{isSuccess ? '🏆' : finalResult.cash > 0 ? '⚠️' : '💀'}</div>
+            <div className={`mx-auto mb-3 inline-flex rounded-full border px-4 py-2 text-sm font-black tracking-[0.22em] ${isSuccess ? 'border-emerald-300 bg-emerald-100 text-emerald-700' : finalResult.cash > 0 ? 'border-amber-300 bg-amber-100 text-amber-700' : 'border-red-300 bg-red-100 text-red-700'}`}>
+              {isSuccess ? '승전' : finalResult.cash > 0 ? '조정' : '위기'}
+            </div>
             <div className="mb-2 text-xl font-black text-amber-900">
               {isSuccess ? '전략 검증 완료!' : finalResult.cash > 0 ? '조정 필요' : '전략 재검토 필요'}
             </div>
@@ -208,8 +239,8 @@ export function SimulationResult({
       </div>
 
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.8 }} className="sg-command-row">
-        <PixelButton onClick={onAdjust} variant="secondary" size="large">⚙️ 전략 재조정</PixelButton>
-        <PixelButton onClick={onRestart} variant="success" size="large">🏰 처음부터 다시</PixelButton>
+        <PixelButton onClick={onAdjust} variant="secondary" size="large">전략 재조정</PixelButton>
+        <PixelButton onClick={onRestart} variant="success" size="large">처음부터 다시</PixelButton>
       </motion.div>
     </div>
   );

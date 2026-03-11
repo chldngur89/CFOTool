@@ -2,6 +2,14 @@
 
 재무 전략 시뮬레이터. 원본 Figma: [Pixel RPG CFO Tool](https://www.figma.com/design/ZoEKtHf8lL4NLYjgHEqKHg/Pixel-RPG-CFO-Tool)
 
+## 현재 주요 동작
+
+- 인건비는 `직원 수 x 300만원`으로 자동 산출됩니다.
+- 대시보드에서 `인건비`, `마케팅비`, `사무실비`, `금고`를 클릭해 팝업으로 수정할 수 있습니다.
+- 시나리오 선택 화면에서 방어/공격/현상유지별 AI 3안(안건)과 추천 문구가 표시됩니다.
+- 방어/공격 카드는 같은 카드를 다시 클릭하면 문구 수정 팝업이 열립니다.
+- 대표 캐릭터 하단 라벨은 회사명으로 표시됩니다.
+
 ## 서버 띄워서 확인하는 방법
 
 ### 1. 의존성 설치 (처음 한 번만)
@@ -57,3 +65,7 @@ VITE_OLLAMA_MODEL=llama3.1:latest
 ```
 
 설정이 없으면 기본값(`http://localhost:11434`, `llama3.1:latest`)을 사용합니다.
+
+## TODO
+
+다음 작업 목록은 `/Users/wh.choi/Desktop/Code/CFOTool/TODO.md`에서 관리합니다.

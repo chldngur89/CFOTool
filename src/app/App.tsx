@@ -19,8 +19,8 @@ interface ViewerProfile {
 
 const LOCAL_PROFILE_KEY = 'cfo_local_profile';
 const LOCAL_DEFAULT_PROFILE: ViewerProfile = {
-  fullName: '로컬 대표',
-  companyName: '로컬 테스트',
+  fullName: '게스트 대표',
+  companyName: '게스트 전장',
   representativeVariant: 'strategist',
 };
 
@@ -65,7 +65,7 @@ export default function App() {
   const [localProfile, setLocalProfile] = useState<ViewerProfile>(() =>
     readLocalProfile()
   );
-  const [localSignedIn, setLocalSignedIn] = useState(false);
+  const [showAuthScreen, setShowAuthScreen] = useState(false);
 
   useEffect(() => {
     if (!supabase) {
@@ -154,7 +154,7 @@ export default function App() {
   };
 
   const handleRepresentativeVariantPersist = async (variant: RepresentativeVariant) => {
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !session?.user) {
       setLocalProfile((prev) => {
         const next = {
           ...prev,
@@ -191,29 +191,65 @@ export default function App() {
     };
     setLocalProfile(nextProfile);
     writeLocalProfile(nextProfile);
-    setLocalSignedIn(true);
+    setShowAuthScreen(false);
   };
 
-  if (!isSupabaseConfigured) {
-    if (!isLocalDev) {
-      return (
-        <div className="sg-shell antialiased">
-          <div className="relative z-10 mx-auto max-w-[1180px] px-3 md:px-6">
-            <div className="sg-panel-dark mx-auto mt-16 max-w-2xl p-6 text-center">
-              <h2 className="sg-heading">Supabase 설정 필요</h2>
-              <p className="sg-subtitle mt-3">
-                `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` 환경변수를 등록한 뒤 다시 배포해주세요.
-              </p>
-            </div>
+  const renderGuestShell = ({
+    authLabel,
+    onAuthClick,
+    banner,
+  }: {
+    authLabel?: string;
+    onAuthClick?: () => void;
+    banner?: string;
+  }) => (
+    <div className="sg-shell antialiased">
+      <div className="relative z-10 mx-auto max-w-[1180px] px-3 md:px-6">
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+          <div className="sg-chip">
+            게스트 모드 · {localProfile.companyName} · {localProfile.fullName}
           </div>
+          {authLabel && onAuthClick && (
+            <button
+              type="button"
+              onClick={onAuthClick}
+              className="sg-btn sg-btn-secondary px-3 py-1.5 text-[10px] font-bold"
+            >
+              {authLabel}
+            </button>
+          )}
         </div>
-      );
-    }
 
-    if (!localSignedIn) {
+        {banner && (
+          <div className="mb-3 rounded-md border border-amber-700/80 bg-amber-900/25 px-3 py-2 text-xs text-amber-100">
+            {banner}
+          </div>
+        )}
+
+        <CastleDefense
+          userDisplayName={localProfile.fullName}
+          companyName={localProfile.companyName}
+          initialRepresentativeVariant={localProfile.representativeVariant}
+          onRepresentativeVariantPersist={handleRepresentativeVariantPersist}
+        />
+      </div>
+    </div>
+  );
+
+  if (!isSupabaseConfigured) {
+    if (showAuthScreen && isLocalDev) {
       return (
         <div className="sg-shell antialiased">
           <div className="relative z-10 mx-auto max-w-[1180px] px-3 md:px-6">
+            <div className="mb-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowAuthScreen(false)}
+                className="sg-btn sg-btn-secondary px-3 py-1.5 text-[10px] font-bold"
+              >
+                게스트 화면으로 돌아가기
+              </button>
+            </div>
             <AuthScreen
               localMode
               forceSignup
@@ -225,31 +261,13 @@ export default function App() {
       );
     }
 
-    return (
-      <div className="sg-shell antialiased">
-        <div className="relative z-10 mx-auto max-w-[1180px] px-3 md:px-6">
-          <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
-            <div className="sg-chip">
-              로컬 모드 · {localProfile.companyName} · {localProfile.fullName}
-            </div>
-            <button
-              type="button"
-              onClick={() => setLocalSignedIn(false)}
-              className="sg-btn sg-btn-secondary px-3 py-1.5 text-[10px] font-bold"
-            >
-              회원가입 화면으로
-            </button>
-          </div>
-
-          <CastleDefense
-            userDisplayName={localProfile.fullName}
-            companyName={localProfile.companyName}
-            initialRepresentativeVariant={localProfile.representativeVariant}
-            onRepresentativeVariantPersist={handleRepresentativeVariantPersist}
-          />
-        </div>
-      </div>
-    );
+    return renderGuestShell({
+      authLabel: isLocalDev ? '회원가입 화면' : undefined,
+      onAuthClick: isLocalDev ? () => setShowAuthScreen(true) : undefined,
+      banner: isLocalDev
+        ? '로컬 모드로 바로 진입했습니다. 필요할 때만 회원가입 화면으로 이동할 수 있습니다.'
+        : 'Supabase 설정이 없어 게스트 모드로 실행 중입니다.',
+    });
   }
 
   if (authLoading || (session && profileLoading)) {
@@ -264,14 +282,32 @@ export default function App() {
     );
   }
 
-  if (!session) {
+  if (!session && showAuthScreen) {
     return (
       <div className="sg-shell antialiased">
         <div className="relative z-10 mx-auto max-w-[1180px] px-3 md:px-6">
+          <div className="mb-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowAuthScreen(false)}
+              className="sg-btn sg-btn-secondary px-3 py-1.5 text-[10px] font-bold"
+            >
+              게스트 화면으로 돌아가기
+            </button>
+          </div>
           <AuthScreen />
         </div>
       </div>
     );
+  }
+
+  if (!session) {
+    return renderGuestShell({
+      authLabel: '회원가입/로그인',
+      onAuthClick: () => setShowAuthScreen(true),
+      banner:
+        'DB 연결 이슈가 있어도 첫 화면은 바로 진입하도록 변경했습니다. 계정 연동이 필요할 때만 회원가입 화면으로 이동하면 됩니다.',
+    });
   }
 
   return (

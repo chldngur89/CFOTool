@@ -38,6 +38,17 @@ export function StrategyPanel({
     () => calculateStrategyProjection(data, settings),
     [data, settings]
   );
+  const timelinePreview = useMemo(() => {
+    const profits = Array.from({ length: 24 }, (_, index) => {
+      const monthRevenue = projection.revenue * Math.pow(1 + settings.revenueGrowth / 1200, index);
+      return monthRevenue - projection.burn;
+    });
+
+    return {
+      profits,
+      maxMagnitude: Math.max(...profits.map((profit) => Math.abs(profit)), 1),
+    };
+  }, [projection.burn, projection.revenue, settings.revenueGrowth]);
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
@@ -46,10 +57,10 @@ export function StrategyPanel({
   const autoAppliedScenarioRef = useRef<ScenarioId | null>(null);
 
   const sliders = [
-    { id: 'revenueGrowth' as const, icon: '📈', label: '매출 성장률', value: settings.revenueGrowth, min: -50, max: 100, step: 5, suffix: '%' },
-    { id: 'headcountChange' as const, icon: '👥', label: '인원 변동', value: settings.headcountChange, min: -5, max: 10, step: 1, suffix: '명' },
-    { id: 'marketingIncrease' as const, icon: '📢', label: '마케팅 투자', value: settings.marketingIncrease, min: -50, max: 200, step: 10, suffix: '%' },
-    { id: 'priceIncrease' as const, icon: '💸', label: '가격 인상', value: settings.priceIncrease, min: -20, max: 50, step: 5, suffix: '%' },
+    { id: 'revenueGrowth' as const, badge: '매출', label: '매출 성장률', value: settings.revenueGrowth, min: -50, max: 100, step: 5, suffix: '%' },
+    { id: 'headcountChange' as const, badge: '인원', label: '인원 변동', value: settings.headcountChange, min: -5, max: 10, step: 1, suffix: '명' },
+    { id: 'marketingIncrease' as const, badge: '홍보', label: '마케팅 투자', value: settings.marketingIncrease, min: -50, max: 200, step: 10, suffix: '%' },
+    { id: 'priceIncrease' as const, badge: '단가', label: '가격 인상', value: settings.priceIncrease, min: -20, max: 50, step: 5, suffix: '%' },
   ];
 
   const handleAiRecommendation = async (autoApplyTopOne: boolean) => {
@@ -64,7 +75,9 @@ export function StrategyPanel({
 
       if (autoApplyTopOne && result.recommendations.length > 0) {
         onSettingsChange(result.recommendations[0].settings);
-        setAiMessage((prev) => `${prev ?? ''} · 1순위 전략을 자동 반영했습니다.`);
+        setAiMessage((prev) =>
+          prev ? `${prev} 상책을 즉시 반영했습니다.` : '상책을 즉시 반영했습니다.'
+        );
       }
     } catch (_) {
       setAiSource('fallback');
@@ -106,7 +119,9 @@ export function StrategyPanel({
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{slider.icon}</span>
+                  <span className="rounded-full border border-amber-600/55 bg-amber-100 px-2 py-1 text-[10px] font-black tracking-[0.16em] text-amber-900">
+                    {slider.badge}
+                  </span>
                   <span className="text-sm font-bold text-amber-900">{slider.label}</span>
                 </div>
                 <div className={`rounded-md border px-3 py-1.5 text-xl font-black ${slider.value >= 0 ? 'border-emerald-700/40 bg-emerald-100 text-emerald-700' : 'border-red-700/40 bg-red-100 text-red-700'}`}>
@@ -131,9 +146,7 @@ export function StrategyPanel({
 
         <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="space-y-6">
           <div className="sg-panel-dark p-6">
-            <h3 className="sg-heading mb-4 flex items-center gap-2">
-              <span>🎯</span> 실시간 시뮬레이션
-            </h3>
+            <h3 className="sg-heading mb-4">실시간 전장 계산</h3>
             <div className="space-y-4">
               <div className="sg-card-dark flex items-center justify-between p-3">
                 <span className="text-sm text-slate-200">월 매출</span>
@@ -169,17 +182,13 @@ export function StrategyPanel({
 
           <div className="sg-panel-dark p-6">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h4 className="sg-heading">🤖 AI 전략관</h4>
+              <h4 className="sg-heading">참모 보고서</h4>
               {aiSource && (
                 <span className={`rounded-md border px-2 py-1 text-[10px] font-bold ${aiSource === 'ollama' ? 'border-emerald-500/50 bg-emerald-900/35 text-emerald-200' : 'border-amber-500/50 bg-amber-900/35 text-amber-200'}`}>
-                  {aiSource === 'ollama' ? 'LLama 판단' : '기본 추천'}
+                  {aiSource === 'ollama' ? '전장 분석' : '기본 작전안'}
                 </span>
               )}
             </div>
-
-            <p className="text-xs text-slate-300">
-              Ollama URL: <code>VITE_OLLAMA_BASE_URL</code> / 모델: <code>VITE_OLLAMA_MODEL</code>
-            </p>
 
             <div className="sg-command-row mt-4 justify-start">
               <PixelButton
@@ -190,7 +199,7 @@ export function StrategyPanel({
                 size="small"
                 disabled={aiLoading}
               >
-                {aiLoading ? '분석 중...' : '🤖 AI 추천 Top3 생성'}
+                {aiLoading ? '정리 중...' : '전략안 3개 보기'}
               </PixelButton>
 
               <PixelButton
@@ -201,7 +210,7 @@ export function StrategyPanel({
                 size="small"
                 disabled={aiLoading}
               >
-                {aiLoading ? '분석 중...' : '⚡ AI 최적안 자동 적용'}
+                {aiLoading ? '정리 중...' : '상책 바로 반영'}
               </PixelButton>
             </div>
 
@@ -248,18 +257,16 @@ export function StrategyPanel({
           </div>
 
           <div className="sg-panel p-6">
-            <h4 className="sg-label mb-4 text-amber-900">🗺️ 24개월 타임라인 미리보기</h4>
+            <h4 className="sg-label mb-4 text-amber-900">24개월 타임라인 미리보기</h4>
             <div className="flex items-end justify-between h-32 gap-1">
-              {[...Array(24)].map((_, i) => {
-                const monthRevenue = projection.revenue * Math.pow(1 + settings.revenueGrowth / 1200, i);
-                const monthBurn = projection.burn;
-                const profit = monthRevenue - monthBurn;
-                const height = (Math.abs(profit) / 50000) * 100;
+              {timelinePreview.profits.map((profit, i) => {
+                const normalizedHeight = (Math.abs(profit) / timelinePreview.maxMagnitude) * 100;
+                const height = Math.min(Math.max(normalizedHeight, 6), 100);
                 return (
                   <motion.div
                     key={i}
                     initial={{ height: 0 }}
-                    animate={{ height: `${Math.min(height, 100)}%` }}
+                    animate={{ height: `${height}%` }}
                     transition={{ delay: i * 0.02 }}
                     className={`flex-1 rounded-t-sm ${profit >= 0 ? 'bg-emerald-500' : 'bg-red-500'} border border-amber-900/20`}
                     title={`${i + 1}개월: ${formatKoreanMoney(profit, { signed: true })}`}
@@ -276,7 +283,9 @@ export function StrategyPanel({
             className={`rounded-xl p-6 border-2 ${projection.runway < 3 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}
           >
             <div className="flex items-start gap-3">
-              <span className="text-3xl">{projection.runway < 3 ? '⚠️' : projection.runway > 12 ? '🎉' : '💡'}</span>
+              <div className={`rounded-full border px-3 py-1 text-[11px] font-black tracking-[0.16em] ${projection.runway < 3 ? 'border-red-400 bg-red-100 text-red-700' : projection.runway > 12 ? 'border-emerald-400 bg-emerald-100 text-emerald-700' : 'border-amber-400 bg-amber-100 text-amber-700'}`}>
+                {projection.runway < 3 ? '위기' : projection.runway > 12 ? '안정' : '관망'}
+              </div>
               <div>
                 <div className="mb-2 font-bold text-amber-900">
                   {projection.runway < 3 ? '위험: 런웨이 부족' : projection.runway > 12 ? '안전: 장기 지속 가능' : '주의: 적정 런웨이 유지'}
@@ -297,7 +306,7 @@ export function StrategyPanel({
         className="sg-command-row mt-8"
       >
         <PixelButton onClick={onBack} variant="secondary">← 시나리오 선택</PixelButton>
-        <PixelButton onClick={onSimulate} variant="success" size="large">⚔️ 시뮬레이션 실행</PixelButton>
+        <PixelButton onClick={onSimulate} variant="success" size="large">시뮬레이션 실행</PixelButton>
       </motion.div>
     </div>
   );

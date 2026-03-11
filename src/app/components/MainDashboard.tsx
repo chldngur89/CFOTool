@@ -81,7 +81,9 @@ export function MainDashboard({
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <span className="text-4xl drop-shadow-[0_2px_0_rgba(0,0,0,0.65)]">🏯</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-md border border-amber-500/70 bg-[#162541] text-[11px] font-black tracking-[0.2em] text-amber-200 shadow-[inset_0_0_0_1px_rgba(255,224,132,0.16)]">
+              성채
+            </div>
             <div>
               <h1 className="sg-heading">{titleName}님의 성 방어전</h1>
               <p className="sg-subtitle mt-1">{subtitle}</p>
@@ -176,7 +178,7 @@ export function MainDashboard({
         <div className="relative z-10">
           <div className="text-center mb-4">
             <div className="inline-block rounded-md border border-amber-600/70 bg-[#1b2a4a]/90 px-4 py-2 text-sm font-bold text-amber-100 shadow-[inset_0_0_0_1px_rgba(255,226,143,0.24)]">
-              ⚔️ 이번 달 작전 운영비 브리핑
+              이번 달 작전 운영비 브리핑
             </div>
           </div>
 
@@ -226,18 +228,18 @@ export function MainDashboard({
         {recentHistory.length === 0 ? (
           <div className="relative overflow-hidden rounded-md border border-amber-800/45 bg-gradient-to-b from-amber-50 to-amber-100 px-4 py-6 text-center">
             <motion.div
-              className="absolute right-4 top-3 text-lg"
-              animate={{ rotate: [0, 12, -10, 0], scale: [1, 1.15, 1] }}
+              className="absolute right-4 top-3 rounded-full border border-amber-600/45 bg-amber-100 px-3 py-1 text-[10px] font-black tracking-[0.18em] text-amber-900"
+              animate={{ rotate: [0, 4, -4, 0], scale: [1, 1.05, 1] }}
               transition={{ duration: 2.6, repeat: Infinity }}
             >
-              ✨
+              출정
             </motion.div>
             <motion.div
-              className="absolute left-4 top-3 text-lg"
+              className="absolute left-4 top-3 rounded-full border border-amber-600/45 bg-amber-100 px-3 py-1 text-[10px] font-black tracking-[0.18em] text-amber-900"
               animate={{ y: [0, -4, 0], opacity: [0.8, 1, 0.8] }}
               transition={{ duration: 1.8, repeat: Infinity }}
             >
-              🔥
+              기록
             </motion.div>
 
             <div className="text-lg font-black text-amber-900">첫 전투가 아직 시작되지 않았습니다</div>
@@ -265,7 +267,7 @@ export function MainDashboard({
 
             <div className="sg-command-row mt-5">
               <PixelButton onClick={onStartScenario} variant="primary">
-                ⚔️ 첫 전투 시작하기
+                첫 전투 시작하기
               </PixelButton>
             </div>
           </div>
@@ -275,10 +277,16 @@ export function MainDashboard({
               {recentHistory.map((record, i) => (
                 <div key={i} className="sg-card p-3 text-center">
                   <div className="text-[11px] font-bold text-amber-800 mb-2">{record.month}</div>
-                  <div className="text-lg font-bold">
-                    {record.revenue > record.burn ? '💰' : record.revenue === record.burn ? '⚖️' : '📉'}
+                  <div className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black tracking-[0.16em] ${
+                    record.revenue > record.burn
+                      ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                      : record.revenue === record.burn
+                        ? 'border-slate-300 bg-slate-100 text-slate-700'
+                        : 'border-rose-300 bg-rose-100 text-rose-700'
+                  }`}>
+                    {record.revenue > record.burn ? '흑자' : record.revenue === record.burn ? '균형' : '적자'}
                   </div>
-                  <div className="mt-1 text-xs text-amber-900/80">
+                  <div className="mt-2 text-xs text-amber-900/80">
                     {record.revenue > record.burn ? '승리' : record.revenue === record.burn ? '균형' : '고전'}
                   </div>
                 </div>
@@ -325,15 +333,15 @@ export function MainDashboard({
         {hasHistory && (
           <div className="sg-command-row">
             <PixelButton onClick={onStartScenario} variant="primary" size="large">
-              ⚔️ 다음 웨이브 대비 전략 수립
+              다음 웨이브 대비 전략 수립
             </PixelButton>
           </div>
         )}
 
         <div className="mt-4 text-sm text-amber-100/85">
           {hasHistory
-            ? `💡 현재 상태: 월 소득 ${formatKoreanMoney(data.monthlyRevenue)} | 월 지출 ${formatKoreanMoney(data.monthlyBurn)} | 순이익 ${formatKoreanMoney(data.monthlyRevenue - data.monthlyBurn, { signed: true })}`
-            : '💡 첫 전투를 시작하면 실제 기록을 바탕으로 다음 전략 수립 버튼이 활성화됩니다.'}
+            ? `현재 상태: 월 소득 ${formatKoreanMoney(data.monthlyRevenue)} | 월 지출 ${formatKoreanMoney(data.monthlyBurn)} | 순이익 ${formatKoreanMoney(data.monthlyRevenue - data.monthlyBurn, { signed: true })}`
+            : '첫 전투를 시작하면 실제 기록을 바탕으로 다음 전략 수립 버튼이 활성화됩니다.'}
         </div>
       </motion.div>
     </div>
