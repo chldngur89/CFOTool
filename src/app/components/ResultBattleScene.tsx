@@ -217,24 +217,24 @@ export function ResultBattleScene({
         {lastStrike === 'hero' && (
           <motion.div
             key={`hero-hit-${turnIndex}`}
-            className="absolute bottom-20 right-[26%] text-3xl"
+            className="absolute bottom-20 right-[24%] rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-[10px] font-black tracking-[0.16em] text-amber-900"
             initial={{ opacity: 0, scale: 0.5, x: -12 }}
             animate={{ opacity: [0, 1, 0], scale: [0.6, 1.2, 0.84], x: [-12, 10, 18] }}
             transition={{ duration: 0.42 }}
           >
-            ⚔️
+            참격
           </motion.div>
         )}
 
         {lastStrike === 'bandit' && (
           <motion.div
             key={`bandit-hit-${turnIndex}`}
-            className="absolute bottom-24 left-[28%] text-3xl"
+            className="absolute bottom-24 left-[28%] rounded-full border border-red-200 bg-red-100 px-3 py-1 text-[10px] font-black tracking-[0.16em] text-red-700"
             initial={{ opacity: 0, scale: 0.5, x: 10 }}
             animate={{ opacity: [0, 1, 0], scale: [0.6, 1.2, 0.84], x: [8, -4, -12] }}
             transition={{ duration: 0.42 }}
           >
-            💥
+            압박
           </motion.div>
         )}
       </div>

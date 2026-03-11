@@ -110,12 +110,11 @@ export function PixelCastle({ hp }: PixelCastleProps) {
       {/* HP 경고 */}
       {hp < 33 && (
         <motion.div
-          className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-red-500 font-bold"
+          className="absolute -top-8 left-1/2 rounded-full border border-red-300 bg-red-100 px-3 py-1 text-[10px] font-black tracking-[0.16em] text-red-700 transform -translate-x-1/2"
           animate={{ opacity: [1, 0, 1], scale: [1, 1.2, 1] }}
           transition={{ duration: 1, repeat: Infinity }}
-          style={{ fontSize: '24px' }}
         >
-          ⚠️
+          위기
         </motion.div>
       )}
     </motion.div>

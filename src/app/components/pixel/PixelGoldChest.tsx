@@ -126,12 +126,10 @@ export function PixelGoldChest({ amount }: PixelGoldChestProps) {
       
       {/* 반짝임 효과 */}
       <motion.div
-        className="absolute top-2 right-2 text-yellow-300 text-lg"
+        className="absolute top-2 right-2 h-3 w-3 rotate-45 border border-yellow-200/80 bg-yellow-100/80"
         animate={{ opacity: [0, 1, 0], scale: [0.8, 1.2, 0.8] }}
         transition={{ duration: 1.5, repeat: Infinity }}
-      >
-        ✨
-      </motion.div>
+      />
     </motion.div>
   );
 }

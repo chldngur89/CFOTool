@@ -263,11 +263,12 @@ async function requestOllamaRecommendations(
   scenario: ScenarioId
 ): Promise<AiStrategyRecommendation[]> {
   const prompt = [
-    '너는 CFO 전략 시뮬레이션 보좌관이다.',
+    '너는 삼국지 풍 재무 전략을 정리하는 참모다.',
     '목표: 24개월 생존 가능성과 월 순이익 개선을 동시에 고려해 전략 3개를 제안하라.',
     '반드시 서로 다른 성향(안정/균형/공격)으로 제시하라.',
     `현재 사용자가 선택한 진형은 "${SCENARIO_STYLE_LABEL[scenario]}"이다.`,
     `진형 힌트: ${SCENARIO_STYLE_HINT[scenario]}`,
+    'title과 reason은 짧고 단정한 참모 보고 문체로 작성하고, AI나 모델이라는 표현은 쓰지 마라.',
     '응답은 순수 JSON으로만 반환한다.',
     'JSON 스키마:',
     '{"recommendations":[{"title":"string","reason":"string","settings":{"revenueGrowth":number,"headcountChange":number,"marketingIncrease":number,"priceIncrease":number}}]}',
@@ -339,8 +340,8 @@ async function requestOllamaRecommendations(
     const normalizedSettings = normalizeSettings(item.settings, currentSettings);
 
     return {
-      title: (item.title || '').trim() || `AI 추천안 ${index + 1}`,
-      reason: (item.reason || '').trim() || '재무 균형을 고려한 자동 추천입니다.',
+      title: (item.title || '').trim() || `계책 ${index + 1}`,
+      reason: (item.reason || '').trim() || '재무 균형을 고려한 실전형 제안입니다.',
       settings: normalizedSettings,
       projection: calculateStrategyProjection(data, normalizedSettings),
       source: 'ollama' as const,
@@ -360,7 +361,7 @@ export async function getAiStrategyRecommendations(
       source: 'ollama',
       model: OLLAMA_MODEL,
       baseUrl: OLLAMA_BASE_URL,
-      message: `${SCENARIO_STYLE_LABEL[scenario]} 기준으로 AI 전략을 정리했습니다.`,
+      message: `${SCENARIO_STYLE_LABEL[scenario]} 기준으로 참모 보고를 정리했습니다.`,
     };
   } catch (error) {
     const fallback = buildFallbackRecommendations(data, currentSettings, scenario);
