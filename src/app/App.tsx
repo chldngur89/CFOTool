@@ -10,7 +10,12 @@ import {
   updateLastWorkspaceId,
   upsertCfoProfile,
 } from './lib/cfoProfile';
-import { isSupabaseConfigured, supabase } from './lib/supabase';
+import {
+  checkSupabaseAvailability,
+  clearSupabaseAuthStorage,
+  getSupabaseClient,
+  isSupabaseConfigured,
+} from './lib/supabase';
 
 interface ViewerProfile {
   fullName: string;
@@ -18,6 +23,8 @@ interface ViewerProfile {
   representativeVariant: RepresentativeVariant;
   lastWorkspaceId: string | null;
 }
+
+type RemoteMode = 'disabled' | 'checking' | 'ready' | 'fallback';
 
 const LOCAL_PROFILE_KEY = 'cfo_local_profile';
 const LOCAL_DEFAULT_PROFILE: ViewerProfile = {
@@ -62,6 +69,9 @@ function writeLocalProfile(profile: ViewerProfile) {
 
 export default function App() {
   const isLocalDev = import.meta.env.DEV;
+  const [remoteMode, setRemoteMode] = useState<RemoteMode>(
+    isSupabaseConfigured ? 'checking' : 'disabled'
+  );
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -73,34 +83,79 @@ export default function App() {
   const [showAuthScreen, setShowAuthScreen] = useState(false);
 
   useEffect(() => {
-    if (!supabase) {
+    if (!isSupabaseConfigured) {
+      setRemoteMode('disabled');
       setAuthLoading(false);
       return;
     }
 
     let mounted = true;
+    let unsubscribe: (() => void) | null = null;
 
-    supabase.auth.getSession().then(({ data }) => {
+    const bootstrapSupabase = async () => {
+      setRemoteMode('checking');
+      setAuthLoading(true);
+
+      const available = await checkSupabaseAvailability({ force: true });
       if (!mounted) return;
-      setSession(data.session);
-      setAuthLoading(false);
-    });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_, nextSession) => {
-      setSession(nextSession);
-      setAuthLoading(false);
-    });
+      if (!available) {
+        clearSupabaseAuthStorage();
+        setSession(null);
+        setViewerProfile(null);
+        setProfileSyncError(null);
+        setRemoteMode('fallback');
+        setAuthLoading(false);
+        setShowAuthScreen(false);
+        return;
+      }
+
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        setRemoteMode('fallback');
+        setAuthLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!mounted) return;
+
+        setSession(data.session);
+        setRemoteMode('ready');
+        setAuthLoading(false);
+
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_, nextSession) => {
+          setSession(nextSession);
+          setAuthLoading(false);
+        });
+
+        unsubscribe = () => subscription.unsubscribe();
+      } catch (error) {
+        console.warn('[Supabase] session bootstrap failed:', error);
+        clearSupabaseAuthStorage();
+        if (!mounted) return;
+        setSession(null);
+        setViewerProfile(null);
+        setProfileSyncError(null);
+        setRemoteMode('fallback');
+        setAuthLoading(false);
+      }
+    };
+
+    void bootstrapSupabase();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      unsubscribe?.();
     };
   }, []);
 
   useEffect(() => {
-    if (!supabase || !session?.user) {
+    if (remoteMode !== 'ready' || !session?.user) {
       setViewerProfile(null);
       setProfileLoading(false);
       return;
@@ -153,15 +208,16 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [session?.user?.id]);
+  }, [remoteMode, session?.user?.id]);
 
   const handleSignOut = async () => {
-    if (!supabase) return;
+    const supabase = getSupabaseClient();
+    if (!supabase || remoteMode !== 'ready') return;
     await supabase.auth.signOut();
   };
 
   const handleRepresentativeVariantPersist = async (variant: RepresentativeVariant) => {
-    if (!isSupabaseConfigured || !session?.user) {
+    if (remoteMode !== 'ready' || !session?.user) {
       setLocalProfile((prev) => {
         const next = {
           ...prev,
@@ -182,7 +238,9 @@ export default function App() {
         : prev
     );
 
+    const supabase = getSupabaseClient();
     if (!supabase) return;
+
     await supabase.auth.updateUser({
       data: {
         representative_variant: variant,
@@ -211,7 +269,7 @@ export default function App() {
         : prev
     );
 
-    if (!session?.user) return;
+    if (remoteMode !== 'ready' || !session?.user) return;
     await updateLastWorkspaceId(session.user.id, workspaceId);
   };
 
@@ -270,7 +328,7 @@ export default function App() {
     </div>
   );
 
-  if (!isSupabaseConfigured) {
+  if (remoteMode === 'disabled') {
     if (showAuthScreen && isLocalDev) {
       return (
         <div className="sg-shell antialiased">
@@ -304,7 +362,14 @@ export default function App() {
     });
   }
 
-  if (authLoading || (session && profileLoading)) {
+  if (remoteMode === 'fallback') {
+    return renderGuestShell({
+      banner:
+        'Supabase 주소에 연결할 수 없어 게스트 모드로 전환했습니다. Vercel 환경변수의 Project URL과 키를 다시 확인하세요.',
+    });
+  }
+
+  if (remoteMode === 'checking' || authLoading || (session && profileLoading)) {
     return (
       <div className="sg-shell antialiased">
         <div className="relative z-10 mx-auto max-w-[1180px] px-3 md:px-6">

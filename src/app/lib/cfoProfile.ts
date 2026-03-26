@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import type { RepresentativeVariant } from '../components/character/CharacterChoiceScreen';
-import { supabase } from './supabase';
+import { getSupabaseClient } from './supabase';
 
 export interface CfoProfileRecord {
   fullName: string;
@@ -26,6 +26,7 @@ export function getProfileFromMetadata(user: User): CfoProfileRecord {
 }
 
 export async function fetchCfoProfile(userId: string): Promise<CfoProfileRecord | null> {
+  const supabase = getSupabaseClient();
   if (!supabase) return null;
 
   let data: any = null;
@@ -77,6 +78,7 @@ export async function upsertCfoProfile({
   lastWorkspaceId,
   representativeVariant,
 }: UpsertProfileInput): Promise<void> {
+  const supabase = getSupabaseClient();
   if (!supabase) return;
 
   const payload = {
@@ -115,6 +117,7 @@ export async function updateLastWorkspaceId(
   userId: string,
   workspaceId: string | null
 ): Promise<void> {
+  const supabase = getSupabaseClient();
   if (!supabase) return;
 
   const { error } = await supabase

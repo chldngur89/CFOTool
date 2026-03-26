@@ -214,7 +214,7 @@ export function StrategyPanel({
               <h4 className="sg-heading">참모 보고서</h4>
               {aiSource && (
                 <span className={`rounded-md border px-2 py-1 text-[10px] font-bold ${aiSource === 'ollama' ? 'border-emerald-500/50 bg-emerald-900/35 text-emerald-200' : 'border-amber-500/50 bg-amber-900/35 text-amber-200'}`}>
-                  {aiSource === 'ollama' ? '전장 분석' : '기본 작전안'}
+                  작전 정리
                 </span>
               )}
             </div>

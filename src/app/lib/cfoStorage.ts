@@ -4,7 +4,7 @@ import {
   computePersonnelCost,
   computeRunway,
 } from './finance';
-import { supabase } from './supabase';
+import { getSupabaseClient } from './supabase';
 
 export interface CfoWorkspaceRecord {
   id: string;
@@ -136,6 +136,7 @@ const SNAPSHOT_FIELDS = [
 ].join(', ');
 
 function requireSupabase() {
+  const supabase = getSupabaseClient();
   if (!supabase) {
     throw new Error('Supabase가 설정되지 않았습니다.');
   }

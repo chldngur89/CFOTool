@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { Input } from './ui/input';
 import { RepresentativeCharacter } from './character/RepresentativeCharacter';
 import type { RepresentativeVariant } from './character/CharacterChoiceScreen';
-import { supabase } from '../lib/supabase';
+import { getSupabaseClient } from '../lib/supabase';
 import { upsertCfoProfile } from '../lib/cfoProfile';
 
 type AuthMode = 'signin' | 'signup';
@@ -57,6 +57,8 @@ export function AuthScreen({
     setNotice(null);
 
     try {
+      const supabase = getSupabaseClient();
+
       if (!email.trim() || (!localMode && !password.trim())) {
         throw new Error('이메일과 비밀번호를 입력해주세요.');
       }

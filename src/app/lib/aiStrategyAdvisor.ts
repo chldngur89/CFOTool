@@ -17,13 +17,22 @@ const STRATEGY_LIMITS = {
   priceIncrease: { min: -20, max: 50, step: 5 },
 } as const;
 
+const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
+
+const EXPLICIT_OLLAMA_BASE_URL =
+  import.meta.env.VITE_OLLAMA_BASE_URL as string | undefined;
+
 const OLLAMA_BASE_URL =
-  (import.meta.env.VITE_OLLAMA_BASE_URL as string | undefined) ??
-  'http://localhost:11434';
+  EXPLICIT_OLLAMA_BASE_URL ?? DEFAULT_OLLAMA_BASE_URL;
 
 const OLLAMA_MODEL =
   (import.meta.env.VITE_OLLAMA_MODEL as string | undefined) ??
   'llama3.1:latest';
+
+const ENABLE_REMOTE_OLLAMA =
+  (import.meta.env.VITE_ENABLE_REMOTE_OLLAMA as string | undefined) === 'true';
+
+const SHOULD_LOG_AI_FALLBACK = import.meta.env.DEV;
 
 interface OllamaRecommendationItem {
   title?: string;
@@ -93,6 +102,38 @@ const clampNumber = (value: number, min: number, max: number) =>
 
 const roundToStep = (value: number, step: number) =>
   Math.round(value / step) * step;
+
+function isLocalBrowserHost() {
+  if (typeof window === 'undefined') return true;
+  return (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  );
+}
+
+function canUseDirectOllama() {
+  if (!import.meta.env.DEV && !ENABLE_REMOTE_OLLAMA) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(OLLAMA_BASE_URL);
+    const ollamaIsLocalhost =
+      parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+
+    if (!EXPLICIT_OLLAMA_BASE_URL) {
+      return isLocalBrowserHost();
+    }
+
+    if (ollamaIsLocalhost && !isLocalBrowserHost()) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function buildHistoricalContext(data: FinancialData) {
   return data.historicalData.map((record) => ({
@@ -174,6 +215,10 @@ function extractJsonObject(raw: string): string | null {
 }
 
 async function requestOllamaJson(prompt: string): Promise<string> {
+  if (!canUseDirectOllama()) {
+    throw new Error('현재 환경에서 Ollama 직접 연결을 사용할 수 없습니다.');
+  }
+
   const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
     method: 'POST',
     headers: {
@@ -510,7 +555,7 @@ export async function getAiStrategyRecommendations(
     };
   } catch (error) {
     const fallback = buildFallbackRecommendations(data, currentSettings, scenario);
-    if (error instanceof Error) {
+    if (SHOULD_LOG_AI_FALLBACK && error instanceof Error) {
       console.warn('[AI Advisor] strategy fallback engaged:', error.message);
     }
 
@@ -531,7 +576,7 @@ export async function getAiHealthCheck(
   try {
     return await requestOllamaHealthCheck(data);
   } catch (error) {
-    if (error instanceof Error) {
+    if (SHOULD_LOG_AI_FALLBACK && error instanceof Error) {
       console.warn('[AI Advisor] health check fallback engaged:', error.message);
     }
     return buildFallbackHealthCheck(data);

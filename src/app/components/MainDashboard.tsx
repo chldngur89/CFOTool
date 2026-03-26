@@ -158,7 +158,7 @@ export function MainDashboard({
                   {advisoryBrief.riskLabel}
                 </span>
                 <span className="text-[10px] font-bold text-amber-900/55">
-                  {advisoryBrief.source === 'ollama' ? '전장 분석' : '기본 참모안'}
+                  참모 정리
                 </span>
               </div>
               <p className="text-sm leading-relaxed text-amber-900/85">
