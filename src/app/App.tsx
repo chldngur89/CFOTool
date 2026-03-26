@@ -7,6 +7,7 @@ import {
   fetchCfoProfile,
   getPreferredVariant,
   getProfileFromMetadata,
+  updateLastWorkspaceId,
   upsertCfoProfile,
 } from './lib/cfoProfile';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
@@ -15,6 +16,7 @@ interface ViewerProfile {
   fullName: string;
   companyName: string;
   representativeVariant: RepresentativeVariant;
+  lastWorkspaceId: string | null;
 }
 
 const LOCAL_PROFILE_KEY = 'cfo_local_profile';
@@ -22,6 +24,7 @@ const LOCAL_DEFAULT_PROFILE: ViewerProfile = {
   fullName: '게스트 대표',
   companyName: '게스트 전장',
   representativeVariant: 'strategist',
+  lastWorkspaceId: null,
 };
 
 function readLocalProfile(): ViewerProfile {
@@ -42,6 +45,8 @@ function readLocalProfile(): ViewerProfile {
           : LOCAL_DEFAULT_PROFILE.companyName,
       representativeVariant:
         parsed.representativeVariant === 'general' ? 'general' : 'strategist',
+      lastWorkspaceId:
+        typeof parsed.lastWorkspaceId === 'string' ? parsed.lastWorkspaceId : null,
     };
   } catch {
     return LOCAL_DEFAULT_PROFILE;
@@ -123,6 +128,7 @@ export default function App() {
           fullName: dbProfile?.fullName || metadataProfile.fullName,
           companyName: dbProfile?.companyName || metadataProfile.companyName,
           representativeVariant: metadataVariant,
+          lastWorkspaceId: dbProfile?.lastWorkspaceId ?? null,
         });
         setProfileSyncError(null);
       } catch {
@@ -132,6 +138,7 @@ export default function App() {
           fullName: metadataProfile.fullName,
           companyName: metadataProfile.companyName,
           representativeVariant: metadataVariant,
+          lastWorkspaceId: null,
         });
         setProfileSyncError('프로필 동기화에 일시적으로 실패했습니다.');
       } finally {
@@ -181,6 +188,31 @@ export default function App() {
         representative_variant: variant,
       },
     });
+
+    await upsertCfoProfile({
+      userId: session.user.id,
+      email: session.user.email,
+      fullName: viewerProfile?.fullName,
+      companyName: viewerProfile?.companyName,
+      lastWorkspaceId: viewerProfile?.lastWorkspaceId ?? null,
+      representativeVariant: variant,
+    });
+  };
+
+  const handleWorkspaceResolved = async (workspaceId: string) => {
+    if (!workspaceId) return;
+
+    setViewerProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            lastWorkspaceId: workspaceId,
+          }
+        : prev
+    );
+
+    if (!session?.user) return;
+    await updateLastWorkspaceId(session.user.id, workspaceId);
   };
 
   const handleLocalSignup = (payload: LocalSignupPayload) => {
@@ -188,6 +220,7 @@ export default function App() {
       fullName: payload.fullName,
       companyName: payload.companyName,
       representativeVariant: payload.representativeVariant,
+      lastWorkspaceId: localProfile.lastWorkspaceId,
     };
     setLocalProfile(nextProfile);
     writeLocalProfile(nextProfile);
@@ -231,6 +264,7 @@ export default function App() {
           companyName={localProfile.companyName}
           initialRepresentativeVariant={localProfile.representativeVariant}
           onRepresentativeVariantPersist={handleRepresentativeVariantPersist}
+          initialWorkspaceId={localProfile.lastWorkspaceId}
         />
       </div>
     </div>
@@ -336,7 +370,10 @@ export default function App() {
           userDisplayName={viewerProfile?.fullName}
           companyName={viewerProfile?.companyName}
           initialRepresentativeVariant={viewerProfile?.representativeVariant}
+          initialWorkspaceId={viewerProfile?.lastWorkspaceId ?? null}
+          userId={session.user.id}
           onRepresentativeVariantPersist={handleRepresentativeVariantPersist}
+          onWorkspaceResolved={handleWorkspaceResolved}
         />
       </div>
     </div>

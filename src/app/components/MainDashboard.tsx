@@ -11,6 +11,7 @@ import { PixelButton } from './pixel/PixelButton';
 import { MoneyTakenByBandits } from './MoneyTakenByBandits';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import type { RepresentativeVariant } from './character/CharacterChoiceScreen';
+import type { AiHealthCheckResult } from '../lib/aiStrategyAdvisor';
 
 const ENCOURAGEMENT_MESSAGES = [
   '오늘의 한 수가 내일의 런웨이를 지킵니다.',
@@ -28,6 +29,10 @@ interface MainDashboardProps {
   onEditCost: (target: 'personnel' | 'marketing' | 'office') => void;
   userDisplayName?: string;
   companyName?: string;
+  advisoryBrief?: AiHealthCheckResult | null;
+  advisoryLoading?: boolean;
+  advisoryError?: string | null;
+  onRefreshAdvisory?: () => void;
 }
 
 export function MainDashboard({
@@ -39,6 +44,10 @@ export function MainDashboard({
   onEditCost,
   userDisplayName,
   companyName,
+  advisoryBrief,
+  advisoryLoading = false,
+  advisoryError,
+  onRefreshAdvisory,
 }: MainDashboardProps) {
   // 재무 판단: 월 지출·런웨이 기준은 lib/finance.ts 참고
   const monthlyBurn = computeMonthlyBurn(
@@ -101,6 +110,91 @@ export function MainDashboard({
             <div className="mt-1 text-[10px] font-bold text-slate-300">클릭하여 수정</div>
           </motion.button>
         </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ y: -12, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="sg-panel p-5"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="sg-label text-amber-900">이번 달 참모 보고</div>
+            <div className="mt-1 text-xs text-amber-900/65">
+              현재 입력값과 최근 기록을 바탕으로 다음 수를 정리합니다.
+            </div>
+          </div>
+          {onRefreshAdvisory && (
+            <button
+              type="button"
+              onClick={onRefreshAdvisory}
+              className="sg-btn sg-btn-secondary px-3 py-1.5 text-[10px] font-bold"
+            >
+              {advisoryLoading ? '정리 중...' : '다시 정리'}
+            </button>
+          )}
+        </div>
+
+        {advisoryError && (
+          <div className="mt-3 rounded-md border border-red-400/50 bg-red-100 px-3 py-2 text-xs font-bold text-red-700">
+            {advisoryError}
+          </div>
+        )}
+
+        {advisoryBrief && (
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr_1fr]">
+            <div className="rounded-md border border-amber-800/25 bg-amber-50 p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <span
+                  className={`rounded-full border px-3 py-1 text-[10px] font-black tracking-[0.16em] ${
+                    advisoryBrief.riskLabel === '위기'
+                      ? 'border-red-300 bg-red-100 text-red-700'
+                      : advisoryBrief.riskLabel === '주의'
+                        ? 'border-amber-300 bg-amber-100 text-amber-700'
+                        : 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                  }`}
+                >
+                  {advisoryBrief.riskLabel}
+                </span>
+                <span className="text-[10px] font-bold text-amber-900/55">
+                  {advisoryBrief.source === 'ollama' ? '전장 분석' : '기본 참모안'}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-amber-900/85">
+                {advisoryBrief.summary}
+              </p>
+            </div>
+
+            <div className="rounded-md border border-amber-800/25 bg-amber-50 p-4">
+              <div className="mb-2 text-xs font-black text-amber-900">핵심 신호</div>
+              <div className="space-y-2">
+                {advisoryBrief.keySignals.map((signal) => (
+                  <div
+                    key={signal}
+                    className="rounded-md border border-amber-700/20 bg-white/65 px-3 py-2 text-xs text-amber-900/85"
+                  >
+                    {signal}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-md border border-amber-800/25 bg-amber-50 p-4">
+              <div className="mb-2 text-xs font-black text-amber-900">즉시 실행</div>
+              <div className="space-y-2">
+                {advisoryBrief.actions.map((action) => (
+                  <div
+                    key={action}
+                    className="rounded-md border border-emerald-700/20 bg-emerald-50 px-3 py-2 text-xs text-emerald-800/90"
+                  >
+                    {action}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* 메인 배틀필드 */}

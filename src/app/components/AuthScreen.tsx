@@ -105,6 +105,7 @@ export function AuthScreen({
             email: data.user.email,
             fullName,
             companyName,
+            representativeVariant: variant,
           });
         }
 

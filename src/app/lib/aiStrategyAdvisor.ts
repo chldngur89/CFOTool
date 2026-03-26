@@ -5,6 +5,9 @@ import type {
 } from '../components/CastleDefense';
 import {
   COST_PER_EMPLOYEE,
+  RUNWAY_DANGER_THRESHOLD,
+  RUNWAY_WARNING_THRESHOLD,
+  formatKoreanMoney,
 } from './finance';
 
 const STRATEGY_LIMITS = {
@@ -32,6 +35,13 @@ interface OllamaRecommendationPayload {
   recommendations?: OllamaRecommendationItem[];
 }
 
+interface OllamaHealthCheckPayload {
+  summary?: string;
+  riskLabel?: string;
+  keySignals?: string[];
+  actions?: string[];
+}
+
 export interface StrategyProjection {
   revenue: number;
   burn: number;
@@ -55,6 +65,17 @@ export interface AiRecommendationResult {
   message: string;
 }
 
+export interface AiHealthCheckResult {
+  summary: string;
+  riskLabel: '안정' | '주의' | '위기';
+  keySignals: string[];
+  actions: string[];
+  source: 'ollama' | 'fallback';
+  model: string;
+  baseUrl: string;
+  message: string;
+}
+
 const SCENARIO_STYLE_LABEL: Record<ScenarioId, string> = {
   defense: '방어적 선택',
   maintain: '현상 유지',
@@ -72,6 +93,15 @@ const clampNumber = (value: number, min: number, max: number) =>
 
 const roundToStep = (value: number, step: number) =>
   Math.round(value / step) * step;
+
+function buildHistoricalContext(data: FinancialData) {
+  return data.historicalData.map((record) => ({
+    month: record.month,
+    revenue: record.revenue,
+    burn: record.burn,
+    profit: record.revenue - record.burn,
+  }));
+}
 
 function normalizeSettings(
   candidate: Partial<StrategySettings> | undefined,
@@ -121,7 +151,7 @@ export function calculateStrategyProjection(
   const employeeCost = nextEmployees * COST_PER_EMPLOYEE;
   const marketingCost = data.marketingCost * (1 + settings.marketingIncrease / 100);
   const newBurn = employeeCost + marketingCost + data.officeCost;
-  const newRunway = data.cash / newBurn;
+  const newRunway = newBurn <= 0 ? Infinity : data.cash / newBurn;
 
   return {
     revenue: newRevenue,
@@ -141,6 +171,45 @@ function extractJsonObject(raw: string): string | null {
   const end = raw.lastIndexOf('}');
   if (start < 0 || end < 0 || end <= start) return null;
   return raw.slice(start, end + 1);
+}
+
+async function requestOllamaJson(prompt: string): Promise<string> {
+  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: OLLAMA_MODEL,
+      stream: false,
+      format: 'json',
+      messages: [
+        {
+          role: 'system',
+          content: '응답은 JSON으로만 반환한다. 불필요한 부연 설명은 넣지 않는다.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Ollama 응답 오류: ${response.status}`);
+  }
+
+  const json = await response.json();
+  const content =
+    typeof json?.message?.content === 'string' ? json.message.content : '';
+
+  const serialized = extractJsonObject(content);
+  if (!serialized) {
+    throw new Error('Ollama 응답에서 JSON을 찾지 못했습니다.');
+  }
+
+  return serialized;
 }
 
 function buildFallbackRecommendations(
@@ -257,6 +326,62 @@ function buildFallbackRecommendations(
   ];
 }
 
+function buildFallbackHealthCheck(data: FinancialData): AiHealthCheckResult {
+  const profit = data.monthlyRevenue - data.monthlyBurn;
+  const burn = Math.max(data.monthlyBurn, 1);
+  const personnelShare = Math.round((data.personnelCost / burn) * 100);
+  const marketingShare = Math.round((data.marketingCost / burn) * 100);
+  const riskLabel: AiHealthCheckResult['riskLabel'] =
+    data.runway <= RUNWAY_DANGER_THRESHOLD || profit < 0
+      ? '위기'
+      : data.runway <= RUNWAY_WARNING_THRESHOLD
+        ? '주의'
+        : '안정';
+
+  const summary =
+    riskLabel === '위기'
+      ? `현재 월 손익은 ${formatKoreanMoney(profit, { signed: true })}이며 런웨이는 ${data.runway.toFixed(1)}개월입니다. 전열 재정비가 우선입니다.`
+      : riskLabel === '주의'
+        ? `현재 월 손익은 ${formatKoreanMoney(profit, { signed: true })}, 런웨이는 ${data.runway.toFixed(1)}개월입니다. 성장과 방어를 함께 조정해야 합니다.`
+        : `현재 월 손익은 ${formatKoreanMoney(profit, { signed: true })}, 런웨이는 ${data.runway.toFixed(1)}개월입니다. 기본 전열은 안정권입니다.`;
+
+  const keySignals = [
+    `런웨이 ${data.runway.toFixed(1)}개월`,
+    `월 손익 ${formatKoreanMoney(profit, { signed: true })}`,
+    `비용 구성: 인건비 ${personnelShare}% · 마케팅 ${marketingShare}%`,
+  ];
+
+  const actions =
+    riskLabel === '위기'
+      ? [
+          '신규 채용과 확장 지출을 잠시 멈추고 현금 방어선을 세우세요.',
+          '마케팅 채널 효율을 다시 점검해 저효율 집행부터 줄이세요.',
+          '다음 달 목표를 흑자 전환보다 현금 소모 완화로 재설정하세요.',
+        ]
+      : riskLabel === '주의'
+        ? [
+            '마케팅비는 유지하되 수익으로 연결되는 채널만 남기세요.',
+            '가격 실험 또는 상품 조합 조정으로 마진 개선 여지를 확인하세요.',
+            '인건비가 더 늘기 전에 이번 달 성장률을 먼저 검증하세요.',
+          ]
+        : [
+            '지금 구조를 유지하되 다음 채용 타이밍을 사전에 계획하세요.',
+            '매출 성장의 근거가 되는 채널을 더 분명히 구분해두세요.',
+            '런웨이 여유가 있을 때 실험 가능한 공세안을 한 벌 준비하세요.',
+          ];
+
+  return {
+    summary,
+    riskLabel,
+    keySignals: keySignals.slice(0, 3),
+    actions: actions.slice(0, 3),
+    source: 'fallback',
+    model: OLLAMA_MODEL,
+    baseUrl: OLLAMA_BASE_URL,
+    message: '현재 수치 기준으로 참모 요약을 정리했습니다.',
+  };
+}
+
 async function requestOllamaRecommendations(
   data: FinancialData,
   currentSettings: StrategySettings,
@@ -287,46 +412,13 @@ async function requestOllamaRecommendations(
       marketingCost: data.marketingCost,
       officeCost: data.officeCost,
       runway: data.runway,
+      historicalData: buildHistoricalContext(data),
     }),
     '현재 전략값:',
     JSON.stringify(currentSettings),
   ].join('\n');
 
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: OLLAMA_MODEL,
-      stream: false,
-      format: 'json',
-      messages: [
-        {
-          role: 'system',
-          content: '전략 추천을 JSON으로만 반환한다. 설명 문장은 reason에 포함한다.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Ollama 응답 오류: ${response.status}`);
-  }
-
-  const json = await response.json();
-  const content =
-    typeof json?.message?.content === 'string' ? json.message.content : '';
-
-  const serialized = extractJsonObject(content);
-  if (!serialized) {
-    throw new Error('Ollama 응답에서 JSON을 찾지 못했습니다.');
-  }
-
+  const serialized = await requestOllamaJson(prompt);
   const parsed = JSON.parse(serialized) as OllamaRecommendationPayload;
   const rawRecommendations = Array.isArray(parsed.recommendations)
     ? parsed.recommendations.slice(0, 3)
@@ -349,6 +441,59 @@ async function requestOllamaRecommendations(
   });
 }
 
+async function requestOllamaHealthCheck(
+  data: FinancialData
+): Promise<AiHealthCheckResult> {
+  const prompt = [
+    '너는 삼국지 풍 재무 참모다.',
+    '입력된 재무 수치를 바탕으로 대표가 바로 이해할 수 있는 월간 진단을 JSON으로 정리하라.',
+    'summary는 2문장 이내, keySignals와 actions는 각각 3개 이내의 짧은 문장으로 작성하라.',
+    'riskLabel은 반드시 "안정", "주의", "위기" 중 하나만 사용하라.',
+    'AI나 모델이라는 표현은 절대 쓰지 마라.',
+    '응답은 순수 JSON으로만 반환한다.',
+    'JSON 스키마:',
+    '{"summary":"string","riskLabel":"안정|주의|위기","keySignals":["string"],"actions":["string"]}',
+    '현재 재무 데이터:',
+    JSON.stringify({
+      cash: data.cash,
+      monthlyRevenue: data.monthlyRevenue,
+      monthlyBurn: data.monthlyBurn,
+      runway: data.runway,
+      employees: data.employees,
+      personnelCost: data.personnelCost,
+      marketingCost: data.marketingCost,
+      officeCost: data.officeCost,
+      historicalData: buildHistoricalContext(data),
+    }),
+  ].join('\n');
+
+  const serialized = await requestOllamaJson(prompt);
+  const parsed = JSON.parse(serialized) as OllamaHealthCheckPayload;
+
+  const riskLabel: AiHealthCheckResult['riskLabel'] =
+    parsed.riskLabel === '위기' || parsed.riskLabel === '주의' || parsed.riskLabel === '안정'
+      ? parsed.riskLabel
+      : '주의';
+
+  return {
+    summary:
+      typeof parsed.summary === 'string' && parsed.summary.trim()
+        ? parsed.summary.trim()
+        : buildFallbackHealthCheck(data).summary,
+    riskLabel,
+    keySignals: Array.isArray(parsed.keySignals)
+      ? parsed.keySignals.filter((item): item is string => typeof item === 'string').slice(0, 3)
+      : buildFallbackHealthCheck(data).keySignals,
+    actions: Array.isArray(parsed.actions)
+      ? parsed.actions.filter((item): item is string => typeof item === 'string').slice(0, 3)
+      : buildFallbackHealthCheck(data).actions,
+    source: 'ollama',
+    model: OLLAMA_MODEL,
+    baseUrl: OLLAMA_BASE_URL,
+    message: '이번 달 전황을 기준으로 참모 보고를 정리했습니다.',
+  };
+}
+
 export async function getAiStrategyRecommendations(
   data: FinancialData,
   currentSettings: StrategySettings,
@@ -366,8 +511,7 @@ export async function getAiStrategyRecommendations(
   } catch (error) {
     const fallback = buildFallbackRecommendations(data, currentSettings, scenario);
     if (error instanceof Error) {
-      // 개발 환경에서는 원인 파악을 위해 로그를 남기되, UI에는 응원형 멘트만 노출한다.
-      console.warn('[AI Advisor] fallback engaged:', error.message);
+      console.warn('[AI Advisor] strategy fallback engaged:', error.message);
     }
 
     return {
@@ -378,5 +522,18 @@ export async function getAiStrategyRecommendations(
       message:
         '바람이 거세도 전열은 무너지지 않습니다. 지금 흐름에 맞춰 기본 전략을 준비했어요.',
     };
+  }
+}
+
+export async function getAiHealthCheck(
+  data: FinancialData
+): Promise<AiHealthCheckResult> {
+  try {
+    return await requestOllamaHealthCheck(data);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.warn('[AI Advisor] health check fallback engaged:', error.message);
+    }
+    return buildFallbackHealthCheck(data);
   }
 }

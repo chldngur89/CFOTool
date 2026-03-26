@@ -7,6 +7,7 @@ import { formatKoreanMoney } from '../lib/finance';
 import {
   calculateStrategyProjection,
   getAiStrategyRecommendations,
+  type AiRecommendationResult,
   type AiStrategyRecommendation,
 } from '../lib/aiStrategyAdvisor';
 
@@ -17,6 +18,13 @@ interface StrategyPanelProps {
   scenario: ScenarioId;
   onSimulate: () => void;
   onBack: () => void;
+  onAiBriefGenerated?: (result: AiRecommendationResult) => Promise<string | null | void> | string | null | void;
+  onAiRecommendationApplied?: (payload: {
+    briefId: string | null;
+    recommendation: AiStrategyRecommendation;
+    index: number;
+    origin: 'manual_apply' | 'auto_apply';
+  }) => Promise<void> | void;
 }
 
 const settingLabels: Record<keyof StrategySettings, { label: string; suffix: string }> = {
@@ -33,6 +41,8 @@ export function StrategyPanel({
   scenario,
   onSimulate,
   onBack,
+  onAiBriefGenerated,
+  onAiRecommendationApplied,
 }: StrategyPanelProps) {
   const projection = useMemo(
     () => calculateStrategyProjection(data, settings),
@@ -54,6 +64,7 @@ export function StrategyPanel({
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [aiSource, setAiSource] = useState<'ollama' | 'fallback' | null>(null);
   const [aiRecommendations, setAiRecommendations] = useState<AiStrategyRecommendation[]>([]);
+  const [latestAiBriefId, setLatestAiBriefId] = useState<string | null>(null);
   const autoAppliedScenarioRef = useRef<ScenarioId | null>(null);
 
   const sliders = [
@@ -62,6 +73,21 @@ export function StrategyPanel({
     { id: 'marketingIncrease' as const, badge: '홍보', label: '마케팅 투자', value: settings.marketingIncrease, min: -50, max: 200, step: 10, suffix: '%' },
     { id: 'priceIncrease' as const, badge: '단가', label: '가격 인상', value: settings.priceIncrease, min: -20, max: 50, step: 5, suffix: '%' },
   ];
+
+  const applyRecommendation = async (
+    recommendation: AiStrategyRecommendation,
+    index: number,
+    origin: 'manual_apply' | 'auto_apply',
+    briefId = latestAiBriefId
+  ) => {
+    onSettingsChange(recommendation.settings);
+    await onAiRecommendationApplied?.({
+      briefId,
+      recommendation,
+      index,
+      origin,
+    });
+  };
 
   const handleAiRecommendation = async (autoApplyTopOne: boolean) => {
     setAiLoading(true);
@@ -72,9 +98,12 @@ export function StrategyPanel({
       setAiRecommendations(result.recommendations);
       setAiSource(result.source);
       setAiMessage(result.message);
+      const maybeBriefId = await onAiBriefGenerated?.(result);
+      const briefId = typeof maybeBriefId === 'string' ? maybeBriefId : null;
+      setLatestAiBriefId(briefId);
 
       if (autoApplyTopOne && result.recommendations.length > 0) {
-        onSettingsChange(result.recommendations[0].settings);
+        await applyRecommendation(result.recommendations[0], 0, 'auto_apply', briefId);
         setAiMessage((prev) =>
           prev ? `${prev} 상책을 즉시 반영했습니다.` : '상책을 즉시 반영했습니다.'
         );
@@ -228,7 +257,9 @@ export function StrategyPanel({
                       <div className="text-sm font-black text-amber-100">{index + 1}. {recommendation.title}</div>
                       <button
                         type="button"
-                        onClick={() => onSettingsChange(recommendation.settings)}
+                        onClick={() => {
+                          void applyRecommendation(recommendation, index, 'manual_apply');
+                        }}
                         className="rounded-md border border-amber-500/70 bg-amber-400 px-2 py-1 text-[10px] font-black text-[#2f2207]"
                       >
                         이 안 적용

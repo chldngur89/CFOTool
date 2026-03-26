@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { PixelButton } from './pixel/PixelButton';
 import { StrategySettings, FinancialData } from './CastleDefense';
@@ -5,9 +6,9 @@ import { HPBar } from './pixel/HPBar';
 import { ResultBattleScene } from './ResultBattleScene';
 import type { RepresentativeVariant } from './character/CharacterChoiceScreen';
 import {
-  COST_PER_EMPLOYEE,
   formatKoreanMoney,
 } from '../lib/finance';
+import { summarizeSimulation } from '../lib/simulation';
 
 interface SimulationResultProps {
   settings: StrategySettings;
@@ -26,32 +27,8 @@ export function SimulationResult({
   onRestart,
   onAdjust
 }: SimulationResultProps) {
-  const simulate24Months = () => {
-    const results = [];
-    let currentCash = initialData.cash;
-    let currentRevenue = initialData.monthlyRevenue;
-    const nextEmployees = Math.max(0, initialData.employees + settings.headcountChange);
-    const employeeCost = nextEmployees * COST_PER_EMPLOYEE;
-    const marketingCost = initialData.marketingCost * (1 + settings.marketingIncrease / 100);
-    const fixedCost = initialData.officeCost;
-
-    for (let month = 1; month <= 24; month++) {
-      currentRevenue = currentRevenue * (1 + settings.revenueGrowth / 1200);
-      if (month === 1) currentRevenue = currentRevenue * (1 + settings.priceIncrease / 100);
-      const totalBurn = employeeCost + marketingCost + fixedCost;
-      const profit = currentRevenue - totalBurn;
-      currentCash += profit;
-      results.push({ month, revenue: currentRevenue, burn: totalBurn, profit, cash: currentCash, runway: currentCash / totalBurn });
-    }
-    return results;
-  };
-
-  const results = simulate24Months();
-  const finalResult = results[results.length - 1];
-  const isSuccess = finalResult.cash > initialData.cash && finalResult.runway > 6;
-  const breakEvenMonth = results.findIndex(r => r.profit > 0);
-  const cashoutMonth = results.findIndex(r => r.cash <= 0);
-  const peakCashMonth = results.reduce((max, r, i) => r.cash > results[max].cash ? i : max, 0);
+  const { results, finalResult, isSuccess, breakEvenMonth, cashoutMonth, peakCashMonth } =
+    useMemo(() => summarizeSimulation(initialData, settings), [initialData, settings]);
   const maxChartMagnitude = Math.max(
     ...results.map((result) => Math.abs(result.profit)),
     1
